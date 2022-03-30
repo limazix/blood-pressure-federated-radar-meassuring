@@ -3,6 +3,7 @@
 
 import os
 
+import numpy as np
 import scipy.io as sio
 
 
@@ -30,3 +31,14 @@ class DataLoader:
             dict: All file contents as a dictionary
         """
         return sio.loadmat(filepath)
+
+    def clean_data_columns(self, data: dict):
+        """Method used to remove .mat control columns from the dictionary
+
+        Parameters:
+            data (dict): Dictionary created from a .mat file
+
+        Returns:
+            dict: A dictionary instancy without .mat control columns
+        """
+        return {k: np.array(v).flatten() for k, v in data.items() if k[0] != "_"}
