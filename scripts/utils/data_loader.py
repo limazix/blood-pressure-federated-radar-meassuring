@@ -61,16 +61,3 @@ class DataLoader:
                 scenario_data = self.clean_data_columns(scenario_data)
                 data = {k: np.concatenate([data[k], v]) for k, v in scenario_data}
         return data
-
-    def run(self):
-        """Method used to convert all subjects data to a dictionary
-
-        Returns:
-            dict: A dictionary instance where each key is a subject reference
-                and the respective value is another dictionary with the subject's data
-        """
-        data = {}
-        for subject in os.listdir(self.data_root_path):
-            subject_root_path = os.path.join(self.data_root_path, subject)
-            data[subject] = self.load_subject_data(subject_root_path)
-        return data
