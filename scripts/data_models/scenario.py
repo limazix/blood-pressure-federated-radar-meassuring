@@ -12,5 +12,5 @@ class Scenario:
         data (dict): It contains the scenario data
     """
 
-    def __init__(self, scenario_type: ScenarioType) -> None:
-        self.scenario_type = scenario_type
+    def __init__(self) -> None:
+        self.scenario_type = None

@@ -20,8 +20,10 @@ def setup_subjects(data_dir):
     subjects = []
     for subject_code in os.listdir(data_dir):
         subject_root_path = os.path.join(data_dir, subject_code)
-        subject = Subject(code=subject_code)
-        subjects.append(subject)
+        if os.path.isdir(subject_root_path):
+            subject = Subject(code=subject_code)
+            subject.setup(subject_root_path)
+            subjects.append(subject)
     return subjects
 
 
