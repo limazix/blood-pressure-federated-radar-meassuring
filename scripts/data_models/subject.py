@@ -30,4 +30,5 @@ class Subject:
         for scenario_filename in os.listdir(data_dir):
             scenario_filepath = os.path.join(scenario_filename, scenario_filename)
             scenario = Scenario()
+            scenario.setup(data_file=scenario_filepath)
             self.scenarios[scenario.scenario_type] = scenario
