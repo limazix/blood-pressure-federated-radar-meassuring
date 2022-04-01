@@ -6,6 +6,8 @@ import os
 import numpy as np
 import scipy.io as sio
 
+from .validator import validate_directory_path
+
 
 class DataLoader:
     """Class designed to load all data from a given path
@@ -15,17 +17,8 @@ class DataLoader:
     """
 
     def __init__(self, data_root_path: str) -> None:
-        self.validate_directory_path(data_root_path)
+        validate_directory_path(data_root_path)
         self.data_root_path = data_root_path
-
-    def validate_directory_path(self, directory_path: str):
-        """Method used to validate a given directory path
-
-        Parameters:
-            directory_path (str): Absolute directory path
-        """
-        if not os.path.isdir(directory_path):
-            raise Exception("The data root path should be a valid directory")
 
     def load_file(self, filepath):
         """Method used to load a .mat file
@@ -58,7 +51,7 @@ class DataLoader:
         Returns:
             dict: A directory instancy with all subject data extracted from all of his .mat files
         """
-        self.validate_directory_path(subject_root_path)
+        validate_directory_path(subject_root_path)
 
         data = {}
         for scenario_filename in os.listdir(subject_root_path):
