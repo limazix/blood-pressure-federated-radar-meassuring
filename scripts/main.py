@@ -38,8 +38,10 @@ def run(data_dir):
         data_dir (str): Data directory path
     """
     logger.info("[Start]")
+
     data_dir = os.path.abspath(data_dir)
     validate_directory_path(data_dir)
+
     subjects = setup_subjects(data_dir)
 
 

@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pandas as pd
+
+from scipy import signal
 
 from utils.logger import logger
 from utils.data_loader import DataLoader
@@ -14,7 +17,7 @@ class Scenario:
 
     Parameters:
         scenario_type (ScenarioType): It defines the type of the current scenario
-        data (dict): It contains the scenario data
+        data (DataFrame): It contains the scenario data
     """
 
     def __init__(self) -> None:
@@ -43,5 +46,13 @@ class Scenario:
         validate_file_path(data_file)
         self.set_scenario_type(os.path.basename(data_file))
         loader = DataLoader()
-        self.data = loader.load_file(data_file)
-        self.data = loader.clean_data_columns(self.data)
+        data = loader.load_file(data_file)
+        data = loader.clean_data_columns(data)
+
+        self.data = pd.DataFrame(
+            {
+                "radar_q": signal.resample(data["radar_q"], data["tfm_bp"].shape[0]),
+                "radar_i": signal.resample(data["radar_i"], data["tfm_bp"].shape[0]),
+                "bp": data["tfm_bp"],
+            }
+        )
