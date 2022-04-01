@@ -3,6 +3,7 @@
 
 import os
 
+from utils.data_loader import DataLoader
 from utils.validator import validate_file_path
 from .scenario_type import ScenarioType
 
@@ -37,3 +38,6 @@ class Scenario:
         """
         validate_file_path(data_file)
         self.set_scenario_type(os.path.basename(data_file))
+        loader = DataLoader()
+        self.data = loader.load_file(data_file)
+        self.data = loader.clean_data_columns(self.data)
