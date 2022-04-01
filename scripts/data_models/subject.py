@@ -28,7 +28,7 @@ class Subject:
         validate_directory_path(data_dir)
 
         for scenario_filename in os.listdir(data_dir):
-            scenario_filepath = os.path.join(scenario_filename, scenario_filename)
+            scenario_filepath = os.path.join(data_dir, scenario_filename)
             scenario = Scenario()
             scenario.setup(data_file=scenario_filepath)
             self.scenarios[scenario.scenario_type] = scenario
