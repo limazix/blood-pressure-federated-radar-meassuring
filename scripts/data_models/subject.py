@@ -3,6 +3,7 @@
 
 import os
 
+from utils.logger import logger
 from utils.validator import validate_directory_path
 from .scenario import Scenario
 
@@ -18,6 +19,7 @@ class Subject:
     def __init__(self, code: str) -> None:
         self.code = code
         self.scenarios = {}
+        logger.debug("[Subject][%s] New Subject", self.code)
 
     def setup(self, data_dir: str):
         """Method used to load all scenario data from files
@@ -25,6 +27,7 @@ class Subject:
         Parameters:
             data_dir (str): Absolute path the subject directory with all his files
         """
+        logger.debug("[Subject][%s] Setup", self.code)
         validate_directory_path(data_dir)
 
         for scenario_filename in os.listdir(data_dir):

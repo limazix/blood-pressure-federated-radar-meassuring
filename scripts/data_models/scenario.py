@@ -3,6 +3,7 @@
 
 import os
 
+from utils.logger import logger
 from utils.data_loader import DataLoader
 from utils.validator import validate_file_path
 from .scenario_type import ScenarioType
@@ -17,6 +18,7 @@ class Scenario:
     """
 
     def __init__(self) -> None:
+        logger.debug("[Scenario] New scenario")
         self.scenario_type = None
         self.data = None
 
@@ -29,6 +31,7 @@ class Scenario:
         name, _ = os.path.splitext(filename)
         scenario = name.split("_")[2]
         self.scenario_type = ScenarioType(scenario)
+        logger.debug("[Scenario] Set scenario type %s", self.scenario_type.value)
 
     def setup(self, data_file: str):
         """Method used to load a scenario data from a file
@@ -36,6 +39,7 @@ class Scenario:
         Parameters:
             data_file (str): The absolute path to a given scenario
         """
+        logger.debug("[Scenario] Setup")
         validate_file_path(data_file)
         self.set_scenario_type(os.path.basename(data_file))
         loader = DataLoader()
