@@ -12,7 +12,7 @@ class Subject:
     """Class designer to represent a subject
 
     Parameters:
-        id (str): Unique subject identifier
+        code (str): Unique subject identifier
         scenarios (dict): A dictionary instance with all scenarios of a subject
     """
 

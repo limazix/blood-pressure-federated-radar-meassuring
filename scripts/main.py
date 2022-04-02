@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from email.policy import default
 import os
 import click
 
@@ -31,6 +32,7 @@ def setup_subjects(data_dir):
 
 @click.command()
 @click.option("--data-dir", help="path to the data directory")
+@click.option("--train-size", default=80, help="data train size (ex: 80)")
 def run(data_dir):
     """Method used to run the application from cli
 
