@@ -3,6 +3,9 @@
 
 import os
 
+import numpy as np
+import pandas as pd
+
 from utils.logger import logger
 from utils.validator import validate_directory_path
 from .scenario import Scenario
@@ -13,12 +16,12 @@ class Subject:
 
     Parameters:
         code (str): Unique subject identifier
-        scenarios (dict): A dictionary instance with all scenarios of a subject
+        scenarios (list): A list instance with all scenarios of a subject
     """
 
     def __init__(self, code: str) -> None:
         self.code = code
-        self.scenarios = {}
+        self.scenarios = []
         logger.debug("[Subject][%s] New Subject", self.code)
 
     def setup(self, data_dir: str):
@@ -34,4 +37,14 @@ class Subject:
             scenario_filepath = os.path.join(data_dir, scenario_filename)
             scenario = Scenario()
             scenario.setup(data_file=scenario_filepath)
-            self.scenarios[scenario.scenario_type] = scenario
+            self.scenarios.append(scenario)
+
+    def get_all_data(self):
+        """Method used load join all scenarios data to a single dataframe
+
+        Returns:
+            DataFrame: A single dataset with all scenarios data merged
+        """
+        return pd.concat(
+            [scenario.data for scenario in self.scenarios], ignore_index=True
+        )
