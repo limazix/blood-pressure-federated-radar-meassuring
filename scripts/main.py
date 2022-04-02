@@ -5,6 +5,9 @@ import os
 import click
 
 from data_models.subject import Subject
+from ml_models.rnn_model import RNNModel
+from fl_agents.fl_local_agent import FLLocalAgent
+
 from utils.validator import validate_directory_path
 from utils.logger import logger
 
@@ -29,6 +32,24 @@ def setup_subjects(data_dir):
     return subjects
 
 
+def setup_local_agents(subjects):
+    """Method used to load all local agents
+
+    Parameters:
+        subjects (list): A list instance with all subjects data
+
+    Returns:
+        list: A list instance with all local agents set
+    """
+    logger.info("[Start] Setup Local Agents")
+    model = RNNModel(input_size=2000, hidden_size=2, output_size=200)
+    agents = []
+    for subject in subjects:
+        agent = FLLocalAgent(model)
+        agents.append(agent)
+    return agents
+
+
 @click.command()
 @click.option("--data-dir", help="path to the data directory")
 @click.option("--train-size", default=80, help="data train size (ex: 80)")
@@ -44,7 +65,8 @@ def run(data_dir, train_size):
     validate_directory_path(data_dir)
 
     subjects = setup_subjects(data_dir)
-    print(subjects[0].get_all_data().head(5))
+    local_agents = setup_local_agents(subjects)
+
 
 if __name__ == "__main__":
     run()
