@@ -4,19 +4,15 @@
 from abc import ABC, abstractmethod
 
 from torch import nn
-from torch.utils.data import DataLoader
 
 
 class FLAgent(ABC):
     """Class used to abstract the federated learning agent methods"""
 
-    def __init__(
-        self, model: nn.Module, data_loader: DataLoader = None, learning_rate=0.0001
-    ) -> None:
+    def __init__(self, model: nn.Module, learning_rate=0.0001) -> None:
         super().__init__()
         self.model = model
         self.learning_rate = learning_rate
-        self.data_loader = data_loader
 
     @abstractmethod
     def fit(self, X, y):

@@ -73,7 +73,7 @@ def setup_local_agents(subjects, train_size, batch_size):
         train_dataloader, test_dataloader = split_train_test(
             subject.get_all_data(), train_size, batch_size
         )
-        agent = FLLocalAgent(model)
+        agent = FLLocalAgent(model, train_dataloader, test_dataloader)
         agents.append(agent)
     return agents
 
