@@ -3,8 +3,13 @@
 
 import os
 import click
+import pandas as pd
+
+from torch.utils.data import DataLoader
 
 from data_models.subject import Subject
+from data_models.suject_dataset import SubjectDataset
+
 from ml_models.rnn_model import RNNModel
 from fl_agents.fl_local_agent import FLLocalAgent
 
@@ -32,7 +37,25 @@ def setup_subjects(data_dir):
     return subjects
 
 
-def setup_local_agents(subjects):
+def split_train_test(data: pd.DataFrame, train_size):
+    """Method used to create the train and test data loaders
+
+    Parameters:
+        data (DataFrame): DataFrame instance with alldata
+        train_size (float): Value between 0-100 to define the tain data size
+
+    Returns:
+        DataLoader: Train Dataloader instance
+        DataLoader: Test Dataloader instance
+    """
+    data_size = len(data)
+    train_max_pos = int((data_size * train_size) / 100)
+    data_train, data_test = data.iloc[:train_max_pos], data.iloc[train_max_pos:]
+    train_dataset, test_dataset = SubjectDataset(data_train), SubjectDataset(data_test)
+    print(train_dataset[0], test_dataset[0])
+
+
+def setup_local_agents(subjects, train_size):
     """Method used to load all local agents
 
     Parameters:
@@ -45,6 +68,7 @@ def setup_local_agents(subjects):
     model = RNNModel(input_size=2000, hidden_size=2, output_size=200)
     agents = []
     for subject in subjects:
+        split_train_test(subject.get_all_data(), train_size)
         agent = FLLocalAgent(model)
         agents.append(agent)
     return agents
@@ -65,7 +89,7 @@ def run(data_dir, train_size):
     validate_directory_path(data_dir)
 
     subjects = setup_subjects(data_dir)
-    local_agents = setup_local_agents(subjects)
+    local_agents = setup_local_agents(subjects, train_size)
 
 
 if __name__ == "__main__":
