@@ -37,7 +37,7 @@ def setup_subjects(data_dir):
     return subjects
 
 
-def split_train_test(data: pd.DataFrame, train_size):
+def split_train_test(data: pd.DataFrame, train_size, batch_size):
     """Method used to create the train and test data loaders
 
     Parameters:
@@ -52,10 +52,12 @@ def split_train_test(data: pd.DataFrame, train_size):
     train_max_pos = int((data_size * train_size) / 100)
     data_train, data_test = data.iloc[:train_max_pos], data.iloc[train_max_pos:]
     train_dataset, test_dataset = SubjectDataset(data_train), SubjectDataset(data_test)
-    print(train_dataset[0], test_dataset[0])
+    return DataLoader(
+        dataset=train_dataset, batch_size=batch_size, shuffle=False
+    ), DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 
-def setup_local_agents(subjects, train_size):
+def setup_local_agents(subjects, train_size, batch_size):
     """Method used to load all local agents
 
     Parameters:
@@ -65,10 +67,12 @@ def setup_local_agents(subjects, train_size):
         list: A list instance with all local agents set
     """
     logger.info("[Start] Setup Local Agents")
-    model = RNNModel(input_size=2000, hidden_size=2, output_size=200)
+    model = RNNModel(input_size=2000, hidden_size=1000, output_size=200)
     agents = []
     for subject in subjects:
-        split_train_test(subject.get_all_data(), train_size)
+        train_dataloader, test_dataloader = split_train_test(
+            subject.get_all_data(), train_size, batch_size
+        )
         agent = FLLocalAgent(model)
         agents.append(agent)
     return agents
@@ -77,11 +81,14 @@ def setup_local_agents(subjects, train_size):
 @click.command()
 @click.option("--data-dir", help="path to the data directory")
 @click.option("--train-size", default=80, help="data train size (ex: 80)")
-def run(data_dir, train_size):
+@click.option("--batch-size", default=64)
+def run(data_dir, train_size, batch_size):
     """Method used to run the application from cli
 
     Parameters:
         data_dir (str): Data directory path
+        train_size (float): Percentage of the data used for training
+        batch_size (int): Size of pytorch batch
     """
     logger.info("[Start]")
 
@@ -89,7 +96,7 @@ def run(data_dir, train_size):
     validate_directory_path(data_dir)
 
     subjects = setup_subjects(data_dir)
-    local_agents = setup_local_agents(subjects, train_size)
+    local_agents = setup_local_agents(subjects, train_size, batch_size)
 
 
 if __name__ == "__main__":
