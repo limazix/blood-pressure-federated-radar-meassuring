@@ -3,9 +3,13 @@
 
 import torch
 from torch import nn
+from torch.autograd import Variable
+from torch.optim import SGD
+
+import pytorch_lightning as pl
 
 
-class RNNModel(nn.Module):
+class RNNModel(pl.LightningModule):
     """Class used to represent a simple RNN implementation in Pytorch for Radar
 
     Parameters:
@@ -14,18 +18,49 @@ class RNNModel(nn.Module):
         output_size (int): The size of the output data array
     """
 
-    def __init__(self, input_size: int, hidden_size: int, output_size: int) -> None:
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_layers: int,
+        output_size: int,
+        lr: float,
+    ) -> None:
         super(RNNModel, self).__init__()
         self.hidden_size = hidden_size
-        self.in2hidden = nn.Linear(input_size + hidden_size, hidden_size)
-        self.in2output = nn.Linear(input_size + hidden_size, output_size)
-        self.hidden = self.init_hidden()
+        self.num_layers = num_layers
+        self.rnn = nn.RNN(
+            input_size, hidden_size, num_layers, batch_first=True, nonlinearity="relu"
+        )
+        self.fc = nn.Linear(hidden_size, output_size)
+        self.lr = lr
+        self.loss = nn.CrossEntropyLoss()
 
-    def forward(self, x):
-        combined = torch.cat((x, self.hidden), 1)
-        self.hidden = torch.sigmoid(self.in2hidden(combined))
-        output = self.in2output(combined)
-        return output
+    def forward(self, X):
+        h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
+        out, _ = self.rnn(X, h0)
+        out = self.fc(out[:, -1, :])
+        return out
 
-    def init_hidden(self):
-        return nn.init.kaiming_uniform_(torch.empty(1, self.hidden_size))
+    def configure_optimizers(self):
+        return SGD(self.parameters(), lr=self.lr)
+
+    def training_step(self, train_batch, batch_idx):
+        x, y = train_batch
+        out = self.forward(x)
+        loss = self.loss(out, y)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, valid_batch, batch_idx):
+        self._evaluate(valid_batch, "validation")
+
+    def test_step(self, test_batch, batch_idx):
+        self._evaluate(test_batch, "test")
+
+    def _evaluate(self, batch, stage=None):
+        x, y = batch
+        out = self.forward(x)
+        loss = self.loss(out, y)
+        if stage:
+            self.log(f"{stage}_loss", loss, prog_bar=True)
