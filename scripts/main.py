@@ -8,7 +8,7 @@ import click
 from torch.utils.data import DataLoader
 
 from data_models.subject import Subject
-from data_models.suject_dataset import SubjectDataset
+from scripts.data_models.subject_dataset import SubjectDataset
 
 
 def setup_subjects(data_dir):
