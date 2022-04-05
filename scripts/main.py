@@ -2,19 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-import click
 import pandas as pd
+import click
 
 from torch.utils.data import DataLoader
 
 from data_models.subject import Subject
 from data_models.suject_dataset import SubjectDataset
-
-from ml_models.rnn_model import RNNModel
-from fl_agents.fl_local_agent import FLLocalAgent
-
-from utils.validator import validate_directory_path
-from utils.logger import logger
 
 
 def setup_subjects(data_dir):
@@ -26,7 +20,6 @@ def setup_subjects(data_dir):
     Returns:
         (list): A list instancy with all available subjects
     """
-    logger.info("[Steup Subjects]")
     subjects = []
     for subject_code in os.listdir(data_dir):
         subject_root_path = os.path.join(data_dir, subject_code)
@@ -57,47 +50,21 @@ def split_train_test(data: pd.DataFrame, train_size, batch_size):
     ), DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
 
-def setup_local_agents(subjects, train_size, batch_size):
-    """Method used to load all local agents
-
-    Parameters:
-        subjects (list): A list instance with all subjects data
-
-    Returns:
-        list: A list instance with all local agents set
-    """
-    logger.info("[Start] Setup Local Agents")
-    model = RNNModel(input_size=2000, hidden_size=1000, output_size=200)
-    agents = []
-    for subject in subjects:
-        train_dataloader, test_dataloader = split_train_test(
-            subject.get_all_data(), train_size, batch_size
-        )
-        agent = FLLocalAgent(model, train_dataloader, test_dataloader)
-        agents.append(agent)
-    return agents
+@click.group()
+@click.option("--data-dir")
+@click.pass_context
+def cli(ctx, data_dir):
+    """Method used to group all commands for a single subject run"""
+    ctx.ensure_object(dict)
+    ctx.obj["data-dir"] = data_dir
 
 
-@click.command()
-@click.option("--data-dir", help="path to the data directory")
-@click.option("--train-size", default=80, help="data train size (ex: 80)")
-@click.option("--batch-size", default=64)
-def run(data_dir, train_size, batch_size):
-    """Method used to run the application from cli
-
-    Parameters:
-        data_dir (str): Data directory path
-        train_size (float): Percentage of the data used for training
-        batch_size (int): Size of pytorch batch
-    """
-    logger.info("[Start]")
-
-    data_dir = os.path.abspath(data_dir)
-    validate_directory_path(data_dir)
-
-    subjects = setup_subjects(data_dir)
-    local_agents = setup_local_agents(subjects, train_size, batch_size)
+@cli.command()
+@click.option("--subject-id")
+@click.pass_context
+def single(ctx, subject_id):
+    print(ctx, subject_id)
 
 
 if __name__ == "__main__":
-    run()
+    cli()

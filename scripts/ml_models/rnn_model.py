@@ -24,7 +24,7 @@ class RNNModel(pl.LightningModule):
         hidden_size: int,
         num_layers: int,
         output_size: int,
-        lr: float,
+        lr: float = 0.0001,
     ) -> None:
         super(RNNModel, self).__init__()
         self.hidden_size = hidden_size
@@ -37,8 +37,16 @@ class RNNModel(pl.LightningModule):
         self.loss = nn.CrossEntropyLoss()
 
     def forward(self, X):
+        """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
+
+        Parameters:
+            X (array): Bi-dimensional array with I and Q values
+        Returns:
+            (array): Uni-dimensional array of blood pressures
+        """
         h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
-        out, _ = self.rnn(X, h0)
+        input = torch.reshape(X, (-1,))
+        out, _ = self.rnn(input, h0)
         out = self.fc(out[:, -1, :])
         return out
 

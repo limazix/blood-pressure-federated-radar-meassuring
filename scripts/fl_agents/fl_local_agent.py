@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
-
 import torch
 import flwr as fl
 import pytorch_lightning as pl

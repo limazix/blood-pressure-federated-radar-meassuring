@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
+from numpy import concatenate
 
-import pandas as pd
+import numpy as np
 
-from utils.logger import logger
 from utils.validator import validate_directory_path
 from .scenario import Scenario
 
@@ -21,7 +21,6 @@ class Subject:
     def __init__(self, code: str) -> None:
         self.code = code
         self.scenarios = []
-        logger.debug("[Subject][%s] New Subject", self.code)
 
     def setup(self, data_dir: str):
         """Method used to load all scenario data from files
@@ -29,7 +28,6 @@ class Subject:
         Parameters:
             data_dir (str): Absolute path the subject directory with all his files
         """
-        logger.debug("[Subject][%s] Setup", self.code)
         validate_directory_path(data_dir)
 
         for scenario_filename in os.listdir(data_dir):
@@ -39,11 +37,14 @@ class Subject:
             self.scenarios.append(scenario)
 
     def get_all_data(self):
-        """Method used load join all scenarios data to a single dataframe
+        """Method used load join all scenarios data
 
         Returns:
-            DataFrame: A single dataset with all scenarios data merged
+            Numpy.array: Radar data in a bi-dimensional array
+            Numpy.array: Blood Pressure data in a single array
         """
-        return pd.concat(
-            [scenario.data for scenario in self.scenarios], ignore_index=True
+        return np.concatenate(
+            [scenario.radar for scenario in self.scenarios], axis=1
+        ), np.concatenate(
+            [scenario.bp for scenario in self.scenarios], axis=1
         )
