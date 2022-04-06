@@ -130,3 +130,5 @@ dmypy.json
 
 # data dirs
 data
+
+lightning_logs

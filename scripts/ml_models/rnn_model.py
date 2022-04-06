@@ -6,8 +6,9 @@ from torch import nn
 from torch.autograd import Variable
 from torch.optim import SGD
 
-import pytorch_lightning as pl
 
+import pytorch_lightning as pl
+from torchmetrics import R2Score
 
 class RNNModel(pl.LightningModule):
     """Class used to represent a simple RNN implementation in Pytorch for Radar
@@ -24,17 +25,24 @@ class RNNModel(pl.LightningModule):
         hidden_size: int,
         num_layers: int,
         output_size: int,
-        lr: float = 0.0001,
+        lr: float = 0.001,
     ) -> None:
         super(RNNModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.conv = nn.Conv1d(in_channels=2, out_channels=1, kernel_size=100)
         self.rnn = nn.RNN(
-            input_size, hidden_size, num_layers, batch_first=True, nonlinearity="relu"
+            input_size - 99,
+            hidden_size,
+            num_layers,
+            batch_first=True,
+            nonlinearity="relu",
         )
         self.fc = nn.Linear(hidden_size, output_size)
         self.lr = lr
         self.loss = nn.CrossEntropyLoss()
+        self.val_r2 = R2Score(num_outputs=output_size)
+        self.test_r2 = R2Score(num_outputs=output_size)
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -45,8 +53,12 @@ class RNNModel(pl.LightningModule):
             (array): Uni-dimensional array of blood pressures
         """
         h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
-        input = torch.reshape(X, (-1,))
-        out, _ = self.rnn(input, h0)
+        X = X.view(X.size(0), X.size(2), X.size(1))
+
+        X = self.conv(X)
+
+        out, _ = self.rnn(X, h0)
+
         out = self.fc(out[:, -1, :])
         return out
 
@@ -55,20 +67,22 @@ class RNNModel(pl.LightningModule):
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
-        out = self.forward(x)
+        out = self(x)
         loss = self.loss(out, y)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, valid_batch, batch_idx):
-        self._evaluate(valid_batch, "validation")
+        self._evaluate(valid_batch, self.val_r2, "validation")
 
     def test_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, "test")
+        self._evaluate(test_batch, self.test_r2, "test")
 
-    def _evaluate(self, batch, stage=None):
+    def _evaluate(self, batch, metric, stage=None):
         x, y = batch
-        out = self.forward(x)
+        out = self(x)
         loss = self.loss(out, y)
+        metric(y, out)
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
+            self.log(f"{stage}_r2", metric, prog_bar=True)

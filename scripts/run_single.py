@@ -3,18 +3,38 @@
 
 import os
 import click
+import copy
 
 from torch.utils.data import DataLoader
+import pytorch_lightning as pl
 
 from data_models.subject import Subject
 from data_models.subject_dataset import SubjectDataset
+
+from ml_models.rnn_model import RNNModel
 
 from utils.validator import validate_directory_path
 
 
 def build_dataloader(dataset, start_index, end_index, batch_size):
+    _dataset = copy.deepcopy(dataset)
+    _dataset.prune(start_index, end_index)
     return DataLoader(
-        dataset=dataset[start_index:end_index], batch_size=batch_size, shuffle=False
+        dataset=_dataset, batch_size=batch_size, shuffle=False, num_workers=8
+    )
+
+
+def build_model(subject_dataset):
+    input_sample, output_sample = subject_dataset[0]
+    input_size = len(input_sample)
+    hidden_size = int(input_size * 0.8)
+    output_size = len(output_sample)
+    return RNNModel(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        num_layers=4,
+        output_size=output_size,
+        lr=0.001
     )
 
 
@@ -37,29 +57,38 @@ def main(data_dir, subject_id, data_split: str, port):
     radar, bp = subject.get_all_data()
 
     subject_dataset = SubjectDataset(
-        radar=radar, radar_sr=2000, bp=bp, bp_sr=200, window_size=3, overlap=1
+        radar=radar, radar_sr=2000, bp=bp, bp_sr=200, window_size=1, overlap=0.3
     )
     data_size = len(subject_dataset)
 
-    train_size, test_size, val_size = data_split.split(":")
+    train_size, val_size, test_size = data_split.split(":")
     end_train_index = int((data_size * int(train_size)) / 100)
-    end_test_index = int((data_size * (int(train_size) + int(test_size))) / 100)
+    end_val_index = int((data_size * (int(train_size) + int(val_size))) / 100)
 
     train_loader = build_dataloader(
         subject_dataset, start_index=0, end_index=end_train_index, batch_size=32
     )
-    test_loader = build_dataloader(
-        subject_dataset,
-        start_index=end_train_index,
-        end_index=end_test_index,
-        batch_size=32,
-    )
     val_loader = build_dataloader(
         subject_dataset,
-        start_index=end_test_index,
+        start_index=end_train_index,
+        end_index=end_val_index,
+        batch_size=32,
+    )
+    test_loader = build_dataloader(
+        subject_dataset,
+        start_index=end_val_index,
         end_index=len(subject_dataset),
         batch_size=32,
     )
+
+    model = build_model(subject_dataset)
+
+    # Train
+    trainer = pl.Trainer(max_epochs=50, gradient_clip_val=0.5, enable_progress_bar=True)
+    trainer.fit(model, train_loader, val_loader)
+
+    # Test
+    trainer.test(model, test_loader)
 
 
 if __name__ == "__main__":
