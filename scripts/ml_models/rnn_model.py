@@ -10,6 +10,7 @@ from torch.optim import SGD
 import pytorch_lightning as pl
 from torchmetrics import R2Score
 
+
 class RNNModel(pl.LightningModule):
     """Class used to represent a simple RNN implementation in Pytorch for Radar
 
@@ -30,19 +31,23 @@ class RNNModel(pl.LightningModule):
         super(RNNModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.conv = nn.Conv1d(in_channels=2, out_channels=1, kernel_size=100)
-        self.rnn = nn.RNN(
+        self.lr = lr
+        self.loss = nn.CrossEntropyLoss()
+        self.val_r2 = R2Score(num_outputs=output_size)
+        self.test_r2 = R2Score(num_outputs=output_size)
+        self.setup_layers(input_size, hidden_size, num_layers, output_size)
+
+    def setup_layers(self, input_size, hidden_size, num_layers, output_size):
+        conv = nn.Conv1d(in_channels=2, out_channels=1, kernel_size=100)
+        rnn = nn.RNN(
             input_size - 99,
             hidden_size,
             num_layers,
             batch_first=True,
             nonlinearity="relu",
         )
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.lr = lr
-        self.loss = nn.CrossEntropyLoss()
-        self.val_r2 = R2Score(num_outputs=output_size)
-        self.test_r2 = R2Score(num_outputs=output_size)
+        fc = nn.Linear(hidden_size, output_size)
+        self.layers = [conv, rnn, fc]
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -55,11 +60,11 @@ class RNNModel(pl.LightningModule):
         h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
         X = X.view(X.size(0), X.size(2), X.size(1))
 
-        X = self.conv(X)
+        X = self.layers[0](X)
 
-        out, _ = self.rnn(X, h0)
+        out, _ = self.layers[1](X, h0)
 
-        out = self.fc(out[:, -1, :])
+        out = self.layers[2](out[:, -1, :])
         return out
 
     def configure_optimizers(self):

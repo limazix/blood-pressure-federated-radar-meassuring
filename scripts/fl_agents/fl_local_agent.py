@@ -15,30 +15,34 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.test_loader = test_loader
 
     def get_parameters(self):
-        rnn_params = _get_parameters(self.model.rnn)
-        fc_params = _get_parameters(self.model.fc)
-        return rnn_params + fc_params
+        params = []
+        for layer in self.model.layers:
+            params = params + _get_parameters(layer)
+        return params
 
     def set_parameters(self, parameters):
-        _set_parameters(self.model.rnn, parameters[:-1])
-        _set_parameters(self.model.fc, parameters[-1])
+        start = 0
+        for layer in self.model.layers:
+            end = start + len(layer.state_dict().keys())
+            _set_parameters(layer, parameters[start:end])
+            start = end
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
 
-        trainer = pl.Trainer(max_epochs=1, progress_bar_refresh_rate=0)
-        trainer.fit(self.model, self.train_loader, self.val_loader)
+        trainer = pl.Trainer(max_epochs=1, enable_progress_bar=False, gradient_clip_val=0.5)
+        trainer.fit(self.model, self.train_loader) #, self.val_loader)
 
-        return self.get_parameters(), 55000, {}
+        return self.get_parameters(), len(self.train_loader.dataset), {}
 
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
 
-        trainer = pl.Trainer(progress_bar_refresh_rate=0)
+        trainer = pl.Trainer(max_epochs=1, enable_progress_bar=False)
         results = trainer.test(self.model, self.test_loader)
         loss = results[0]["test_loss"]
 
-        return loss, 10000, {"loss": loss}
+        return loss, len(self.test_loader.dataset), {"loss": loss}
 
 
 def _get_parameters(model):

@@ -7,11 +7,13 @@ import copy
 
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+import flwr as fl
 
 from data_models.subject import Subject
 from data_models.subject_dataset import SubjectDataset
 
 from ml_models.rnn_model import RNNModel
+from fl_agents.fl_local_agent import FLLocalAgent
 
 from utils.validator import validate_directory_path
 
@@ -34,7 +36,7 @@ def build_model(subject_dataset):
         hidden_size=hidden_size,
         num_layers=4,
         output_size=output_size,
-        lr=0.001
+        lr=0.001,
     )
 
 
@@ -83,12 +85,8 @@ def main(data_dir, subject_id, data_split: str, port):
 
     model = build_model(subject_dataset)
 
-    # Train
-    trainer = pl.Trainer(max_epochs=50, gradient_clip_val=0.5, enable_progress_bar=True)
-    trainer.fit(model, train_loader, val_loader)
-
-    # Test
-    trainer.test(model, test_loader)
+    agent = FLLocalAgent(model, train_loader, val_loader, test_loader)
+    fl.client.start_numpy_client("localhost:8080", client=agent)
 
 
 if __name__ == "__main__":

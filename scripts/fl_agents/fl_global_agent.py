@@ -13,8 +13,8 @@ def main() -> None:
 
     # Start Flower server for three rounds of federated learning
     fl.server.start_server(
-        server_address="[::]:8080",
-        config={"num_rounds": 10},
+        server_address="localhost:8080",
+        config={"num_rounds": 3},
         strategy=strategy,
     )
 
