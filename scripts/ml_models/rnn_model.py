@@ -4,7 +4,7 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from torch.optim import SGD
+from torch.optim import Adam
 
 
 import pytorch_lightning as pl
@@ -31,6 +31,7 @@ class RNNModel(pl.LightningModule):
         super(RNNModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.num_directions = 1
         self.lr = lr
         self.loss = nn.CrossEntropyLoss()
         self.val_r2 = R2Score(num_outputs=output_size)
@@ -38,16 +39,15 @@ class RNNModel(pl.LightningModule):
         self.setup_layers(input_size, hidden_size, num_layers, output_size)
 
     def setup_layers(self, input_size, hidden_size, num_layers, output_size):
-        conv = nn.Conv1d(in_channels=2, out_channels=1, kernel_size=100)
         rnn = nn.RNN(
-            input_size - 99,
+            input_size,
             hidden_size,
             num_layers,
             batch_first=True,
             nonlinearity="relu",
         )
         fc = nn.Linear(hidden_size, output_size)
-        self.layers = [conv, rnn, fc]
+        self.layers = nn.ModuleList([rnn, fc])
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -57,18 +57,17 @@ class RNNModel(pl.LightningModule):
         Returns:
             (array): Uni-dimensional array of blood pressures
         """
-        h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
-        X = X.view(X.size(0), X.size(2), X.size(1))
+        # h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
+        h_0 = torch.randn(self.num_directions * self.num_layers, X.size(0), self.hidden_size)
+        c_0 = torch.randn(self.num_directions * self.num_layers, X.size(0), self.hidden_size)
 
-        X = self.layers[0](X.float())
+        out, _ = self.layers[0](X.float())
 
-        out, _ = self.layers[1](X, h0)
-
-        out = self.layers[2](out[:, -1, :])
+        out = self.layers[1](out)
         return out
 
     def configure_optimizers(self):
-        return SGD(self.parameters(), lr=self.lr)
+        return Adam(params=list(self.parameters()), lr=self.lr)
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch

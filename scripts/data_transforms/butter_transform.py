@@ -11,12 +11,14 @@ class ButterTransform(object):
         self.config = config["butterworth"]
 
     def __call__(self, data):
+        nyq = 0.5 * int(config["dataset"]["radar_sr"])
+        low = float(self.config["low_freq"]) / nyq
+        high = float(self.config["high_freq"]) / nyq
         sos = signal.butter(
             N=int(self.config["order"]),
-            Wn=[float(self.config["low_freq"]), float(self.config["high_freq"])],
+            Wn=[low, high],
             btype=self.config["type"],
-            output=self.config["output"],
-            fs=int(config["dataset"]["radar_sr"]),
+            output=self.config["output"]
         )
         data[0] = signal.sosfilt(sos, data[0])
         data[1] = signal.sosfilt(sos, data[1])
