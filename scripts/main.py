@@ -12,7 +12,9 @@ import flwr as fl
 
 from data_models.subject import Subject
 from data_models.subject_dataset import SubjectDataset
+
 from data_transforms.to_tensor import ToTensor
+from data_transforms.butter_transform import ButterTransform
 
 from ml_models.rnn_model import RNNModel
 from fl_agents.fl_local_agent import FLLocalAgent
@@ -64,7 +66,7 @@ def run_local(subject_id):
         bp_sr=int(config["dataset"]["bp_sr"]),
         window_size=float(config["dataset"]["window_size"]),
         overlap=float(config["dataset"]["overlap"]),
-        transform=Compose([ToTensor()]),
+        transform=Compose([ButterTransform(), ToTensor()]),
         target_transform=Compose([ToTensor()]),
     )
     data_size = len(subject_dataset)

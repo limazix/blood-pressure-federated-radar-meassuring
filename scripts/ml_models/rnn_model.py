@@ -77,9 +77,6 @@ class RNNModel(pl.LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, valid_batch, batch_idx):
-        self._evaluate(valid_batch, self.val_r2, "validation")
-
     def test_step(self, test_batch, batch_idx):
         self._evaluate(test_batch, self.test_r2, "test")
 
