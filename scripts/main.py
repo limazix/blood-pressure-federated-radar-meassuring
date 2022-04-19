@@ -2,69 +2,100 @@
 # -*- coding: utf-8 -*-
 
 import os
-import pandas as pd
+import copy
 import click
 
 from torch.utils.data import DataLoader
+from torchvision.transforms import Compose
+
+import flwr as fl
 
 from data_models.subject import Subject
-from scripts.data_models.subject_dataset import SubjectDataset
+from data_models.subject_dataset import SubjectDataset
+from data_transforms.to_tensor import ToTensor
+
+from ml_models.rnn_model import RNNModel
+from fl_agents.fl_local_agent import FLLocalAgent
+from fl_agents.fl_global_agent import run_global_agent
+
+from utils.configurator import config
+from utils.validator import validate_directory_path
 
 
-def setup_subjects(data_dir):
-    """Method used to create all subject instancies based on the input data
-
-    Parameters:
-        data_dir (str): Data directory absolute path
-
-    Returns:
-        (list): A list instancy with all available subjects
-    """
-    subjects = []
-    for subject_code in os.listdir(data_dir):
-        subject_root_path = os.path.join(data_dir, subject_code)
-        if os.path.isdir(subject_root_path):
-            subject = Subject(code=subject_code)
-            subject.setup(subject_root_path)
-            subjects.append(subject)
-    return subjects
-
-
-def split_train_test(data: pd.DataFrame, train_size, batch_size):
-    """Method used to create the train and test data loaders
-
-    Parameters:
-        data (DataFrame): DataFrame instance with alldata
-        train_size (float): Value between 0-100 to define the tain data size
-
-    Returns:
-        DataLoader: Train Dataloader instance
-        DataLoader: Test Dataloader instance
-    """
-    data_size = len(data)
-    train_max_pos = int((data_size * train_size) / 100)
-    data_train, data_test = data.iloc[:train_max_pos], data.iloc[train_max_pos:]
-    train_dataset, test_dataset = SubjectDataset(data_train), SubjectDataset(data_test)
+def build_dataloader(dataset, start_index, end_index):
+    _dataset = copy.deepcopy(dataset)
+    _dataset.prune(start_index, end_index)
     return DataLoader(
-        dataset=train_dataset, batch_size=batch_size, shuffle=False
-    ), DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+        dataset=_dataset,
+        shuffle=False,
+        num_workers=int(config["dataloader"]["num_workers"]),
+        batch_size=int(config["dataloader"]["batch_size"]),
+    )
 
 
-@click.group()
-@click.option("--data-dir")
-@click.pass_context
-def cli(ctx, data_dir):
-    """Method used to group all commands for a single subject run"""
-    ctx.ensure_object(dict)
-    ctx.obj["data-dir"] = data_dir
+def build_model(subject_dataset):
+    input_sample, output_sample = subject_dataset[0]
+    input_size = len(input_sample)
+    hidden_size = int(input_size * 0.8)
+    output_size = len(output_sample)
+    return RNNModel(
+        input_size=input_size,
+        hidden_size=hidden_size,
+        num_layers=4,
+        output_size=output_size,
+        lr=float(config["setup"]["learn_rate"]),
+    )
 
 
-@cli.command()
+def run_local(subject_id):
+    subject_data_dir = os.path.normpath(
+        os.path.join(config["setup"]["datadir"], subject_id)
+    )
+    validate_directory_path(subject_data_dir)
+
+    subject = Subject(code=subject_id)
+    subject.setup(data_dir=subject_data_dir)
+    radar, bp = subject.get_all_data()
+
+    subject_dataset = SubjectDataset(
+        radar=radar,
+        radar_sr=int(config["dataset"]["radar_sr"]),
+        bp=bp,
+        bp_sr=int(config["dataset"]["bp_sr"]),
+        window_size=float(config["dataset"]["window_size"]),
+        overlap=float(config["dataset"]["overlap"]),
+        transform=Compose([ToTensor()]),
+        target_transform=Compose([ToTensor()]),
+    )
+    data_size = len(subject_dataset)
+
+    end_train_index = int(data_size * float(config["setup"]["train_size"]))
+
+    train_loader = build_dataloader(
+        subject_dataset, start_index=0, end_index=end_train_index
+    )
+    test_loader = build_dataloader(
+        subject_dataset, start_index=end_train_index, end_index=len(subject_dataset)
+    )
+
+    model = build_model(subject_dataset)
+
+    agent = FLLocalAgent(model, train_loader, test_loader)
+    fl.client.start_numpy_client(
+        "{}:{}".format(config["server"]["hostname"], config["server"]["port"]),
+        client=agent,
+    )
+
+
+@click.command()
+@click.option("--is-global", is_flag=True)
 @click.option("--subject-id")
-@click.pass_context
-def single(ctx, subject_id):
-    print(ctx, subject_id)
+def main(is_global, subject_id):
+    if not is_global:
+        run_local(subject_id)
+    else:
+        run_global_agent()
 
 
 if __name__ == "__main__":
-    cli()
+    main()

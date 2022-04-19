@@ -48,7 +48,7 @@ class SubjectDataset(Dataset):
         """
         windows = []
         start = 0
-        end = sr * self.window_size
+        end = int(sr * self.window_size)
         while end < len(data):
             window = data[start:end]
             windows.append(window)

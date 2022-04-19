@@ -3,8 +3,10 @@
 
 import flwr as fl
 
+from utils.configurator import config
 
-def main() -> None:
+
+def run_global_agent() -> None:
     # Define strategy
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=0.5,
@@ -13,11 +15,9 @@ def main() -> None:
 
     # Start Flower server for three rounds of federated learning
     fl.server.start_server(
-        server_address="localhost:8080",
+        server_address="{}:{}".format(
+            config["server"]["hostname"], config["server"]["port"]
+        ),
         config={"num_rounds": 3},
         strategy=strategy,
     )
-
-
-if __name__ == "__main__":
-    main()

@@ -8,10 +8,9 @@ import pytorch_lightning as pl
 
 
 class FLLocalAgent(fl.client.NumPyClient):
-    def __init__(self, model, train_loader, val_loader, test_loader):
+    def __init__(self, model, train_loader, test_loader):
         self.model = model
         self.train_loader = train_loader
-        self.val_loader = val_loader
         self.test_loader = test_loader
 
     def get_parameters(self):
@@ -31,7 +30,7 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.set_parameters(parameters)
 
         trainer = pl.Trainer(max_epochs=1, enable_progress_bar=False, gradient_clip_val=0.5)
-        trainer.fit(self.model, self.train_loader) #, self.val_loader)
+        trainer.fit(self.model, self.train_loader)
 
         return self.get_parameters(), len(self.train_loader.dataset), {}
 
