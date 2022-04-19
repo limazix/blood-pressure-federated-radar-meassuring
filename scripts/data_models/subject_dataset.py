@@ -72,4 +72,4 @@ class SubjectDataset(Dataset):
         if self.target_transform:
             y = self.target_transform(y)
 
-        return torch.Tensor(X), torch.Tensor(y)
+        return X, y

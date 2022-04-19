@@ -60,7 +60,7 @@ class RNNModel(pl.LightningModule):
         h0 = Variable(torch.zeros(self.num_layers, X.size(0), self.hidden_size))
         X = X.view(X.size(0), X.size(2), X.size(1))
 
-        X = self.layers[0](X)
+        X = self.layers[0](X.float())
 
         out, _ = self.layers[1](X, h0)
 

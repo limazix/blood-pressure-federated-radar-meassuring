@@ -6,11 +6,14 @@ import click
 import copy
 
 from torch.utils.data import DataLoader
+from torchvision.transforms import Compose
+
 import pytorch_lightning as pl
 import flwr as fl
 
 from data_models.subject import Subject
 from data_models.subject_dataset import SubjectDataset
+from data_transforms.to_tensor import ToTensor
 
 from ml_models.rnn_model import RNNModel
 from fl_agents.fl_local_agent import FLLocalAgent
@@ -59,7 +62,14 @@ def main(data_dir, subject_id, data_split: str, port):
     radar, bp = subject.get_all_data()
 
     subject_dataset = SubjectDataset(
-        radar=radar, radar_sr=2000, bp=bp, bp_sr=200, window_size=1, overlap=0.3
+        radar=radar,
+        radar_sr=2000,
+        bp=bp,
+        bp_sr=200,
+        window_size=1,
+        overlap=0.3,
+        transform=Compose([ToTensor()]),
+        target_transform=Compose([ToTensor()]),
     )
     data_size = len(subject_dataset)
 
