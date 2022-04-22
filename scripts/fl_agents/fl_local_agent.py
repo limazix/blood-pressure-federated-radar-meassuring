@@ -6,6 +6,8 @@ import torch
 import flwr as fl
 import pytorch_lightning as pl
 
+from utils.configurator import config as configurator
+
 
 class FLLocalAgent(fl.client.NumPyClient):
     def __init__(self, model, train_loader, test_loader):
@@ -29,7 +31,11 @@ class FLLocalAgent(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
 
-        trainer = pl.Trainer(max_epochs=1, enable_progress_bar=False, gradient_clip_val=0.5)
+        trainer = pl.Trainer(
+            max_epochs=int(configurator["setup"]["epochs"]),
+            enable_progress_bar=False,
+            gradient_clip_val=0.5,
+        )
         trainer.fit(self.model, self.train_loader)
 
         return self.get_parameters(), len(self.train_loader.dataset), {}
@@ -37,11 +43,14 @@ class FLLocalAgent(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
 
-        trainer = pl.Trainer(max_epochs=1, enable_progress_bar=False)
+        trainer = pl.Trainer(
+            max_epochs=int(configurator["setup"]["epochs"]), enable_progress_bar=False
+        )
         results = trainer.test(self.model, self.test_loader)
         loss = results[0]["test_loss"]
+        r2 = results[0]["test_r2"]
 
-        return loss, len(self.test_loader.dataset), {"loss": loss}
+        return loss, len(self.test_loader.dataset), {"loss": loss, "r2": r2}
 
 
 def _get_parameters(model):

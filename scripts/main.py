@@ -51,8 +51,8 @@ def build_model(subject_dataset):
 
 
 def run_local(subject_id):
-    subject_data_dir = os.path.normpath(
-        os.path.join(config["setup"]["datadir"], subject_id)
+    subject_data_dir = os.path.abspath(
+        os.path.normpath(os.path.join(config["setup"]["datadir"], subject_id))
     )
     validate_directory_path(subject_data_dir)
 
