@@ -4,11 +4,11 @@
 import flwr as fl
 
 from utils.configurator import config
-
+from strategy.aggregate_custom_metrics import AggregateCustomMetricStrategy
 
 def run_global_agent() -> None:
     # Define strategy
-    strategy = fl.server.strategy.FedAvg(
+    strategy = AggregateCustomMetricStrategy(
         fraction_fit=0.5,
         fraction_eval=0.5,
     )

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import torch
-from torch import nn
+from torch import dropout, nn
 from torch.autograd import Variable
 from torch.optim import Adam
 
@@ -39,12 +39,12 @@ class RNNModel(pl.LightningModule):
         self.setup_layers(input_size, hidden_size, num_layers, output_size)
 
     def setup_layers(self, input_size, hidden_size, num_layers, output_size):
-        rnn = nn.RNN(
+        rnn = nn.GRU(
             input_size,
             hidden_size,
             num_layers,
             batch_first=True,
-            nonlinearity="relu",
+            dropout=0.1
         )
         fc = nn.Linear(hidden_size, output_size)
         self.layers = nn.ModuleList([rnn, fc])
