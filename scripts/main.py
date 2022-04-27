@@ -7,6 +7,8 @@ import click
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
+from torch.optim import Adam
+from torch import nn
 
 import flwr as fl
 
@@ -17,6 +19,7 @@ from data_transforms.to_tensor import ToTensor
 from data_transforms.butter_transform import ButterTransform
 from data_transforms.arctan_demodulation import ArctanDemodulation
 
+from ml_models.lightning_module import LightningModule
 from ml_models.rnn_model import RNNModel
 from fl_agents.fl_local_agent import FLLocalAgent
 from fl_agents.fl_global_agent import run_global_agent
@@ -41,11 +44,17 @@ def build_model(subject_dataset):
     input_size = len(input_sample)
     hidden_size = int(input_size * 0.8)
     output_size = len(output_sample)
-    return RNNModel(
+    rnn_model = RNNModel(
         input_size=input_size,
         hidden_size=hidden_size,
         num_layers=4,
         output_size=output_size,
+    )
+
+    return LightningModule(
+        model=rnn_model,
+        loss=nn.CrossEntropyLoss(),
+        optimizer=Adam,
         lr=float(config["setup"]["learn_rate"]),
     )
 
