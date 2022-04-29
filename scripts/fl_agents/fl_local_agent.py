@@ -10,9 +10,10 @@ from utils.configurator import config as configurator
 
 
 class FLLocalAgent(fl.client.NumPyClient):
-    def __init__(self, model, train_loader, test_loader):
+    def __init__(self, model, train_loader, val_loader, test_loader):
         self.model = model
         self.train_loader = train_loader
+        self.val_loader = val_loader
         self.test_loader = test_loader
 
     def get_parameters(self):

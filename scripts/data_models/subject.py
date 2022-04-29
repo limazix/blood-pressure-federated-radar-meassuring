@@ -45,4 +45,4 @@ class Subject:
         """
         return np.concatenate(
             [scenario.radar for scenario in self.scenarios], axis=1
-        ).T, np.concatenate([scenario.bp for scenario in self.scenarios])
+        ), np.concatenate([scenario.bp for scenario in self.scenarios])

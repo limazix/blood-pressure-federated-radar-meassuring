@@ -63,19 +63,49 @@ def build_model(subject_dataset):
     )
 
 
-def build_loaders(subject_id):
+def get_subject_data(subject_id):
     subject_data_dir = os.path.abspath(
         os.path.normpath(os.path.join(config["setup"]["datadir"], subject_id))
     )
-    validate_directory_path(subject_data_dir)
+
+    if os.path.isfile(subject_data_dir):
+        return None
 
     subject = Subject(code=subject_id)
     subject.setup(data_dir=subject_data_dir)
-    radar, bp = subject.get_all_data()
+    return subject.get_all_data()
+
+
+def get_data(subject_id=None):
+    radar = None
+    bp = None
+    if subject_id is not None:
+        radar, bp = get_subject_data(subject_id)
+    else:
+        data_dir = os.path.abspath(os.path.normpath(config["setup"]["datadir"]))
+        validate_directory_path(data_dir)
+        for subject_dir in os.listdir(data_dir):
+            data = get_subject_data(subject_dir)
+            if data is not None:
+                radar = (
+                    np.concatenate([radar, data[0]], axis=1)
+                    if radar is not None
+                    else data[0]
+                )
+                bp = np.concatenate([bp, data[1]]) if bp is not None else data[1]
+
+    # replace nan with mean
+    radar = np.nan_to_num(radar, nan=np.nanmean(radar, axis=0))
+    bp = np.nan_to_num(bp, nan=np.nanmean(bp, axis=0))
+
+    return radar.T, bp
+
+
+def build_loaders(radar, bp):
     radar_mean, radar_std = np.mean(radar, axis=0), np.std(radar, axis=0)
     bp_mean, bp_std = np.mean(bp, axis=0), np.std(bp, axis=0)
 
-    subject_dataset = SubjectDataset(
+    dataset = SubjectDataset(
         radar=radar,
         radar_sr=int(config["dataset"]["radar_sr"]),
         bp=bp,
@@ -85,28 +115,27 @@ def build_loaders(subject_id):
         transform=Compose([ToTensor(), Normalize(mean=radar_mean, std=radar_std)]),
         target_transform=Compose([ToTensor(), Normalize(mean=bp_mean, std=bp_std)]),
     )
-    data_size = len(subject_dataset)
+    data_size = len(dataset)
 
     end_train_index = int(data_size * float(config["setup"]["train_size"]))
     end_val_index = end_train_index + int(
         data_size * float(config["setup"]["val_size"])
     )
 
-    train_loader = build_dataloader(
-        subject_dataset, start_index=0, end_index=end_train_index
-    )
+    train_loader = build_dataloader(dataset, start_index=0, end_index=end_train_index)
     val_loader = build_dataloader(
-        subject_dataset, start_index=end_train_index, end_index=end_val_index
+        dataset, start_index=end_train_index, end_index=end_val_index
     )
     test_loader = build_dataloader(
-        subject_dataset, start_index=end_val_index, end_index=len(subject_dataset)
+        dataset, start_index=end_val_index, end_index=data_size
     )
-    return subject_dataset, train_loader, val_loader, test_loader
+    return dataset, train_loader, val_loader, test_loader
 
 
-def run_lightning(subject_id):
-    subject_dataset, train_loader, val_loader, test_loader = build_loaders(subject_id)
-    model = build_model(subject_dataset)
+def run_lightning():
+    radar, bp = get_data()
+    dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
+    model = build_model(dataset)
 
     trainer = pl.Trainer(
         callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
@@ -119,10 +148,11 @@ def run_lightning(subject_id):
 
 
 def run_local_agent(subject_id):
-    subject_dataset, train_loader, test_loader = build_loaders(subject_id)
+    radar, bp = get_data(subject_id)
+    subject_dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
     model = build_model(subject_dataset)
 
-    agent = FLLocalAgent(model, train_loader, test_loader)
+    agent = FLLocalAgent(model, train_loader, val_loader, test_loader)
     fl.client.start_numpy_client(
         "{}:{}".format(config["server"]["hostname"], config["server"]["port"]),
         client=agent,
@@ -140,7 +170,7 @@ def main(is_federated, is_global, subject_id):
         else:
             run_global_agent()
     else:
-        run_lightning(subject_id)
+        run_lightning()
 
 
 if __name__ == "__main__":
