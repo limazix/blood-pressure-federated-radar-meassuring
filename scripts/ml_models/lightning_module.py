@@ -4,7 +4,7 @@
 from torch import nn
 
 import pytorch_lightning as pl
-from torchmetrics import R2Score
+from torchmetrics import MeanSquaredError
 
 
 class LightningModule(pl.LightningModule):
@@ -21,7 +21,8 @@ class LightningModule(pl.LightningModule):
         self.loss = loss
         self.optimizer = optimizer
         self.lr = lr
-        self.test_r2 = R2Score(num_outputs=model.output_size)
+        self.val_mse = MeanSquaredError()
+        self.test_mse = MeanSquaredError()
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -43,8 +44,11 @@ class LightningModule(pl.LightningModule):
         self.log("train_loss", loss)
         return loss
 
+    def validation_step(self, test_batch, batch_idx):
+        self._evaluate(test_batch, self.val_mse, "val")
+
     def test_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, self.test_r2, "test")
+        self._evaluate(test_batch, self.test_mse, "test")
 
     def _evaluate(self, batch, metric, stage=None):
         x, y = batch
@@ -53,4 +57,4 @@ class LightningModule(pl.LightningModule):
         metric(y, out)
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
-            self.log(f"{stage}_r2", metric, prog_bar=True)
+            self.log(f"{stage}_mse", metric, prog_bar=True)
