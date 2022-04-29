@@ -88,18 +88,24 @@ def build_loaders(subject_id):
     data_size = len(subject_dataset)
 
     end_train_index = int(data_size * float(config["setup"]["train_size"]))
+    end_val_index = end_train_index + int(
+        data_size * float(config["setup"]["val_size"])
+    )
 
     train_loader = build_dataloader(
         subject_dataset, start_index=0, end_index=end_train_index
     )
-    test_loader = build_dataloader(
-        subject_dataset, start_index=end_train_index, end_index=len(subject_dataset)
+    val_loader = build_dataloader(
+        subject_dataset, start_index=end_train_index, end_index=end_val_index
     )
-    return subject_dataset, train_loader, test_loader
+    test_loader = build_dataloader(
+        subject_dataset, start_index=end_val_index, end_index=len(subject_dataset)
+    )
+    return subject_dataset, train_loader, val_loader, test_loader
 
 
 def run_lightning(subject_id):
-    subject_dataset, train_loader, test_loader = build_loaders(subject_id)
+    subject_dataset, train_loader, val_loader, test_loader = build_loaders(subject_id)
     model = build_model(subject_dataset)
 
     trainer = pl.Trainer(
@@ -108,7 +114,8 @@ def run_lightning(subject_id):
         enable_progress_bar=True,
         gradient_clip_val=0.5,
     )
-    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=test_loader)
+    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+    trainer.test(model, test_loader)
 
 
 def run_local_agent(subject_id):
