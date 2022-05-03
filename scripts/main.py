@@ -9,7 +9,7 @@ import numpy as np
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
-from torch.optim import Adam
+from torch.optim import SGD
 from torch import nn
 
 import flwr as fl
@@ -21,6 +21,7 @@ from data_models.subject_dataset import SubjectDataset
 
 from data_transforms.to_tensor import ToTensor
 from data_transforms.normalize import Normalize
+from data_transforms.fill_nan import FillNan
 
 from ml_models.lightning_module import LightningModule
 from ml_models.autoencoder_model import AutoencoderModel
@@ -58,7 +59,7 @@ def build_model(subject_dataset):
     return LightningModule(
         model=model,
         loss=nn.L1Loss(),
-        optimizer=Adam,
+        optimizer=SGD,
         lr=float(config["setup"]["learn_rate"]),
     )
 
@@ -94,16 +95,12 @@ def get_data(subject_id=None):
                 )
                 bp = np.concatenate([bp, data[1]]) if bp is not None else data[1]
 
-    # replace nan with mean
-    radar = np.nan_to_num(radar, nan=np.nanmean(radar, axis=0))
-    bp = np.nan_to_num(bp, nan=np.nanmean(bp, axis=0))
-
     return radar.T, bp
 
 
 def build_loaders(radar, bp):
-    radar_mean, radar_std = np.mean(radar, axis=0), np.std(radar, axis=0)
-    bp_mean, bp_std = np.mean(bp, axis=0), np.std(bp, axis=0)
+    radar_mean, radar_std = np.nanmean(radar, axis=0), np.nanstd(radar, axis=0)
+    bp_mean, bp_std = np.nanmean(bp, axis=0), np.nanstd(bp, axis=0)
 
     dataset = SubjectDataset(
         radar=radar,
@@ -112,8 +109,20 @@ def build_loaders(radar, bp):
         bp_sr=int(config["dataset"]["bp_sr"]),
         window_size=float(config["dataset"]["window_size"]),
         overlap=float(config["dataset"]["overlap"]),
-        transform=Compose([ToTensor(), Normalize(mean=radar_mean, std=radar_std)]),
-        target_transform=Compose([ToTensor(), Normalize(mean=bp_mean, std=bp_std)]),
+        transform=Compose(
+            [
+                ToTensor(),
+                FillNan(default_mean=radar_mean),
+                Normalize(mean=radar_mean, std=radar_std),
+            ]
+        ),
+        target_transform=Compose(
+            [
+                ToTensor(),
+                FillNan(default_mean=bp_mean),
+                Normalize(mean=bp_mean, std=bp_std),
+            ]
+        ),
     )
     data_size = len(dataset)
 
