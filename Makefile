@@ -17,6 +17,7 @@ clean:
 build:
 	@$(PODMANAGER) build --tag $(IMAGE_TAG_PREFIX)-base --file containers/base.dockerfile .
 	@$(PODMANAGER) build --tag $(IMAGE_TAG_PREFIX)-$(GLOBAL_AGENT_NAME) --file containers/global_agent.dockerfile .
+	@$(PODMANAGER) build --tag $(IMAGE_TAG_PREFIX)-$(GLOBAL_AGENT_NAME) --file containers/local_agent.dockerfile .
 
 run:
 	@$(PODMANAGER) run -p 8080:8080 --name $(GLOBAL_AGENT_NAME) -it $(IMAGE_TAG_PREFIX)-$(GLOBAL_AGENT_NAME)
