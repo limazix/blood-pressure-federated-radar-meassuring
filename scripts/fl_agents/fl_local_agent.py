@@ -5,6 +5,7 @@ from collections import OrderedDict
 import torch
 import flwr as fl
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from utils.configurator import config as configurator
 
@@ -33,11 +34,16 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.set_parameters(parameters)
 
         trainer = pl.Trainer(
+            callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
             max_epochs=int(configurator["setup"]["epochs"]),
             enable_progress_bar=False,
             gradient_clip_val=0.5,
         )
-        trainer.fit(self.model, self.train_loader)
+        trainer.fit(
+            self.model,
+            train_dataloaders=self.train_loader,
+            val_dataloaders=self.val_loader,
+        )
 
         return self.get_parameters(), len(self.train_loader.dataset), {}
 
@@ -49,9 +55,9 @@ class FLLocalAgent(fl.client.NumPyClient):
         )
         results = trainer.test(self.model, self.test_loader)
         loss = results[0]["test_loss"]
-        r2 = results[0]["test_r2"]
+        mse = results[0]["test_mse"]
 
-        return loss, len(self.test_loader.dataset), {"loss": loss, "r2": r2}
+        return loss, len(self.test_loader.dataset), {"loss": loss, "mse": mse}
 
 
 def _get_parameters(model):

@@ -3,7 +3,7 @@
 #export GRPC_POLL_STRATEGY=epoll1
 
 echo "Starting server"
-poetry run python scripts/main.py --is-global &
+poetry run python scripts/main.py --is-global --is-federated &
 sleep 3 # Sleep for 3s to give the server enough time to start
 
 for i in `seq 1 2` # seq 1 30
@@ -11,9 +11,9 @@ do
     echo "Starting client $i"
     if [ $i -lt 10 ]
     then
-        poetry run python scripts/main.py --subject-id="GDN000$i" &
+        poetry run python scripts/main.py --is-federated --subject-id="GDN000$i" &
     else
-        poetry run python scripts/main.py --subject-id="GDN00$i" &
+        poetry run python scripts/main.py --is-federated --subject-id="GDN00$i" &
     fi
 done
 
