@@ -25,3 +25,7 @@ COPY ./poetry.lock ./pyproject.toml ./
 COPY ./config.ini ./
 
 RUN poetry install
+
+COPY ./scripts ./scripts
+
+RUN chmod +x ./scripts/main.py
