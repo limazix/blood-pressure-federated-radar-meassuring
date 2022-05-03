@@ -1,8 +1,7 @@
 SHELL:=/bin/bash
 
 PODMANAGER=podman
-PYTHON_RUNNER=poetry run
-PYTHON_SCRIPTS=scripts
+IMAGE_TAG_PREFIX=bp-federated
 
 install:
 	@poetry install
@@ -14,4 +13,5 @@ clean:
 	@poetry cache clean
 
 build:
-	@$(PODMANAGER) build --tag bp-federated-base --file containers/base.dockerfile .
+	@$(PODMANAGER) build --tag $(IMAGE_TAG_PREFIX)-base --file containers/base.dockerfile .
+	@$(PODMANAGER) build --tag $(IMAGE_TAG_PREFIX)-global-agent --file containers/global_agent.dockerfile .
