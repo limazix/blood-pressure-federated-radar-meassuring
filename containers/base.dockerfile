@@ -20,7 +20,7 @@ ENV PATH="$POETRY_HOME/bin:$PATH"
 
 WORKDIR ${APP_PATH}
 
-COPY ./poetry.lock ./pyproject.toml ./
+COPY ./pyproject.toml ./
 
 COPY ./config.ini ./
 

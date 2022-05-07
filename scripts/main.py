@@ -165,16 +165,18 @@ def run_local_agent(subject_id):
     fl.client.start_numpy_client(
         "{}:{}".format(config["server"]["hostname"], config["server"]["port"]),
         client=agent,
+        grpc_max_message_length=int(config["server"]["grpc"]),
     )
 
 
 @click.command()
 @click.option("--is-federated", is_flag=True)
 @click.option("--is-global", is_flag=True)
-@click.option("--subject-id")
+@click.option("--subject-id", default=None)
 def main(is_federated, is_global, subject_id):
     if is_federated:
         if not is_global:
+            subject_id = os.environ.get("SUBJECT_ID", subject_id)
             run_local_agent(subject_id)
         else:
             run_global_agent()

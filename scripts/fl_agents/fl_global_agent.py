@@ -6,6 +6,7 @@ import flwr as fl
 from utils.configurator import config
 from strategy.aggregate_custom_metrics import AggregateCustomMetricStrategy
 
+
 def run_global_agent() -> None:
     # Define strategy
     strategy = AggregateCustomMetricStrategy(
@@ -20,4 +21,5 @@ def run_global_agent() -> None:
         ),
         config={"num_rounds": 3},
         strategy=strategy,
+        grpc_max_message_length=int(config["server"]["grpc"]),
     )

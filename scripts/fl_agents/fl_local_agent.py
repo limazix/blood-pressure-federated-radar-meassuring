@@ -16,6 +16,13 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
+        self.trainer = pl.Trainer(
+            callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
+            max_epochs=int(configurator["setup"]["epochs"]),
+            enable_progress_bar=False,
+            gradient_clip_val=0.5,
+        )
+
 
     def get_parameters(self):
         params = []
@@ -33,13 +40,7 @@ class FLLocalAgent(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
 
-        trainer = pl.Trainer(
-            callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
-            max_epochs=int(configurator["setup"]["epochs"]),
-            enable_progress_bar=False,
-            gradient_clip_val=0.5,
-        )
-        trainer.fit(
+        self.trainer.fit(
             self.model,
             train_dataloaders=self.train_loader,
             val_dataloaders=self.val_loader,
@@ -50,10 +51,7 @@ class FLLocalAgent(fl.client.NumPyClient):
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
 
-        trainer = pl.Trainer(
-            max_epochs=int(configurator["setup"]["epochs"]), enable_progress_bar=False
-        )
-        results = trainer.test(self.model, self.test_loader)
+        results = self.trainer.test(self.model, self.test_loader)
         loss = results[0]["test_loss"]
         mse = results[0]["test_mse"]
 
