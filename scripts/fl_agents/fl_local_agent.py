@@ -23,7 +23,6 @@ class FLLocalAgent(fl.client.NumPyClient):
             gradient_clip_val=0.5,
         )
 
-
     def get_parameters(self):
         params = []
         for layer in self.model.layers:
@@ -54,8 +53,9 @@ class FLLocalAgent(fl.client.NumPyClient):
         results = self.trainer.test(self.model, self.test_loader)
         loss = results[0]["test_loss"]
         mse = results[0]["test_mse"]
+        r2 = results[0]["test_r2"]
 
-        return loss, len(self.test_loader.dataset), {"loss": loss, "mse": mse}
+        return loss, len(self.test_loader.dataset), {"loss": loss, "mse": mse, "r2": r2}
 
 
 def _get_parameters(model):

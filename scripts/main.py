@@ -113,14 +113,14 @@ def build_loaders(radar, bp):
             [
                 ToTensor(),
                 FillNan(default_mean=radar_mean),
-                Normalize(mean=radar_mean, std=radar_std),
+#                Normalize(mean=radar_mean, std=radar_std),
             ]
         ),
         target_transform=Compose(
             [
                 ToTensor(),
                 FillNan(default_mean=bp_mean),
-                Normalize(mean=bp_mean, std=bp_std),
+ #               Normalize(mean=bp_mean, std=bp_std),
             ]
         ),
     )

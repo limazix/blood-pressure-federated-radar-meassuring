@@ -4,7 +4,7 @@
 from torch import nn
 
 import pytorch_lightning as pl
-from torchmetrics import MeanSquaredError
+from torchmetrics import MeanSquaredError, R2Score
 
 
 class LightningModule(pl.LightningModule):
@@ -22,7 +22,9 @@ class LightningModule(pl.LightningModule):
         self.optimizer = optimizer
         self.lr = lr
         self.val_mse = MeanSquaredError()
+        self.val_r2 = R2Score(num_outputs=self.model.output_size)
         self.test_mse = MeanSquaredError()
+        self.test_r2 = R2Score(num_outputs=self.model.output_size)
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -45,16 +47,18 @@ class LightningModule(pl.LightningModule):
         return loss
 
     def validation_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, self.val_mse, "val")
+        self._evaluate(test_batch, [self.val_mse, self.val_r2], "val")
 
     def test_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, self.test_mse, "test")
+        self._evaluate(test_batch, [self.test_mse, self.test_r2], "test")
 
-    def _evaluate(self, batch, metric, stage=None):
+    def _evaluate(self, batch, metrics, stage=None):
         x, y = batch
         out = self(x)
         loss = self.loss(out, y)
-        metric(y, out)
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
-            self.log(f"{stage}_mse", metric, prog_bar=True)
+            for index, metric in enumerate(metrics):
+                metric(y, out)
+                metric_name = "mse" if index == 0 else "r2"
+                self.log(f"{stage}_{metric_name}", metric, prog_bar=True)
