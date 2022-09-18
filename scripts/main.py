@@ -29,6 +29,7 @@ from ml_models.autoencoder_model import AutoencoderModel
 from fl_agents.fl_local_agent import FLLocalAgent
 from fl_agents.fl_global_agent import run_global_agent
 
+from utils.ml_trainer import MLTrainer
 from utils.configurator import config
 from utils.validator import validate_directory_path
 
@@ -52,13 +53,15 @@ def build_model(subject_dataset):
     num_layers = 2
     output_size = len(output_sample)
 
-    model = AutoencoderModel(
+    return AutoencoderModel(
         input_size, hidden_size, latent_dim, num_layers, output_size
     )
 
-    return LightningModule(
+
+def build_trainer(model):
+    return MLTrainer(
         model=model,
-        loss=nn.L1Loss(),
+        criterion=nn.L1Loss(),
         optimizer=SGD,
         lr=float(config["setup"]["learn_rate"]),
     )
@@ -113,55 +116,46 @@ def build_loaders(radar, bp):
             [
                 ToTensor(),
                 FillNan(default_mean=radar_mean),
-#                Normalize(mean=radar_mean, std=radar_std),
+                #                Normalize(mean=radar_mean, std=radar_std),
             ]
         ),
         target_transform=Compose(
             [
                 ToTensor(),
                 FillNan(default_mean=bp_mean),
- #               Normalize(mean=bp_mean, std=bp_std),
+                #               Normalize(mean=bp_mean, std=bp_std),
             ]
         ),
     )
     data_size = len(dataset)
 
     end_train_index = int(data_size * float(config["setup"]["train_size"]))
-    end_val_index = end_train_index + int(
-        data_size * float(config["setup"]["val_size"])
-    )
 
     train_loader = build_dataloader(dataset, start_index=0, end_index=end_train_index)
-    val_loader = build_dataloader(
-        dataset, start_index=end_train_index, end_index=end_val_index
-    )
     test_loader = build_dataloader(
-        dataset, start_index=end_val_index, end_index=data_size
+        dataset, start_index=end_train_index, end_index=data_size
     )
-    return dataset, train_loader, val_loader, test_loader
+    return dataset, train_loader, test_loader
 
 
 def run_lightning():
     radar, bp = get_data()
-    dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
+    dataset, train_loader, test_loader = build_loaders(radar, bp)
     model = build_model(dataset)
 
-    trainer = pl.Trainer(
-        callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
-        max_epochs=int(config["setup"]["epochs"]),
-        enable_progress_bar=True,
-        gradient_clip_val=0.5,
-    )
-    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
-    trainer.test(model, test_loader)
+    trainer = build_trainer(model)
+    trainer.train(epochs=int(config["setup"]["epochs"]), train_loader=train_loader)
+    loss, mse = trainer.test(test_loader=test_loader)
+    print("Loss: {} MSE: {}".format(loss, mse))
 
 
 def run_local_agent(subject_id):
     radar, bp = get_data(subject_id)
-    subject_dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
+    subject_dataset, train_loader, test_loader = build_loaders(radar, bp)
     model = build_model(subject_dataset)
+    trainer = build_trainer(model)
 
-    agent = FLLocalAgent(model, train_loader, val_loader, test_loader)
+    agent = FLLocalAgent(trainer, train_loader, test_loader)
     fl.client.start_numpy_client(
         "{}:{}".format(config["server"]["hostname"], config["server"]["port"]),
         client=agent,

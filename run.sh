@@ -6,7 +6,7 @@ echo "Starting server"
 poetry run python scripts/main.py --is-global --is-federated &
 sleep 3 # Sleep for 3s to give the server enough time to start
 
-for i in `seq 1 30` # seq 1 30
+for i in `seq 1 5` # seq 1 30
 do
     echo "Starting client $i"
     if [ $i -lt 10 ]
