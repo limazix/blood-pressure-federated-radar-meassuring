@@ -9,8 +9,6 @@ import numpy as np
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
-from torch.optim import SGD
-from torch import nn
 
 import flwr as fl
 import pytorch_lightning as pl
@@ -23,8 +21,7 @@ from data_transforms.to_tensor import ToTensor
 from data_transforms.normalize import Normalize
 from data_transforms.fill_nan import FillNan
 
-from ml_models.lightning_module import LightningModule
-from ml_models.autoencoder_model import AutoencoderModel
+from ml_models.model_builder import ModelBuilder
 
 from fl_agents.fl_local_agent import FLLocalAgent
 from fl_agents.fl_global_agent import run_global_agent
@@ -40,26 +37,6 @@ def build_dataloader(dataset, start_index, end_index):
         shuffle=False,
         num_workers=int(config["dataloader"]["num_workers"]),
         batch_size=int(config["dataloader"]["batch_size"]),
-    )
-
-
-def build_model(subject_dataset):
-    input_sample, output_sample = subject_dataset[0]
-    input_size = len(input_sample)
-    hidden_size = int(input_size * 0.8)
-    latent_dim = int(hidden_size * 0.5)
-    num_layers = 2
-    output_size = len(output_sample)
-
-    model = AutoencoderModel(
-        input_size, hidden_size, latent_dim, num_layers, output_size
-    )
-
-    return LightningModule(
-        model=model,
-        loss=nn.L1Loss(),
-        optimizer=SGD,
-        lr=float(config["setup"]["learn_rate"]),
     )
 
 
@@ -110,7 +87,8 @@ def run_lightning():
     data_builder = DataBuilder()
     radar, bp = data_builder.get_data()
     dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
-    model = build_model(dataset)
+    model_builder = ModelBuilder()
+    model = model_builder.build(dataset)
 
     trainer = pl.Trainer(
         callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
@@ -126,7 +104,8 @@ def run_local_agent(subject_id):
     data_builder = DataBuilder()
     radar, bp = data_builder.get_data(subject_id)
     subject_dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
-    model = build_model(subject_dataset)
+    model_builder = ModelBuilder()
+    model = model_builder.build(subject_dataset)
 
     agent = FLLocalAgent(model, train_loader, val_loader, test_loader)
     fl.client.start_numpy_client(
