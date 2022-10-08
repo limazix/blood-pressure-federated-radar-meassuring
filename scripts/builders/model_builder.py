@@ -6,8 +6,8 @@ from torch import nn
 
 from utils.configurator import config
 
-from .autoencoder_model import AutoencoderModel
-from .lightning_module import LightningModule
+from ml_models.autoencoder_model import AutoencoderModel
+from ml_models.lightning_module import LightningModule
 
 
 class ModelBuilder:

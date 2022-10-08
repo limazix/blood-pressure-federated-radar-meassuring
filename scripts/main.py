@@ -8,11 +8,9 @@ import flwr as fl
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from data_models.data_builder import DataBuilder
-
-from data_transforms.data_loader_builder import DataLoaderBuilder
-
-from ml_models.model_builder import ModelBuilder
+from builders.data_builder import DataBuilder
+from builders.data_loader_builder import DataLoaderBuilder
+from builders.model_builder import ModelBuilder
 
 from fl_agents.fl_local_agent import FLLocalAgent
 from fl_agents.fl_global_agent import run_global_agent

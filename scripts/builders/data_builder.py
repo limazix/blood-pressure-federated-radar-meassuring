@@ -8,7 +8,7 @@ import numpy as np
 from utils.configurator import config
 from utils.validator import validate_directory_path
 
-from .subject import Subject
+from data_models.subject import Subject
 
 
 class DataBuilder:

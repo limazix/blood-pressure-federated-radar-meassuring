@@ -12,9 +12,9 @@ from data_models.subject_dataset import SubjectDataset
 
 from utils.configurator import config
 
-from .to_tensor import ToTensor
-from .normalize import Normalize
-from .fill_nan import FillNan
+from data_transforms.to_tensor import ToTensor
+from data_transforms.normalize import Normalize
+from data_transforms.fill_nan import FillNan
 
 
 class DataLoaderBuilder:
