@@ -43,7 +43,7 @@ class LightningModule(pl.LightningModule):
         x, y = train_batch
         out = self(x)
         loss = self.loss(out, y)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, on_epoch=True, on_step=True, sync_dist=True)
         return loss
 
     def validation_step(self, test_batch, batch_idx):
@@ -57,7 +57,14 @@ class LightningModule(pl.LightningModule):
         out = self(x)
         loss = self.loss(out, y)
         if stage:
-            self.log(f"{stage}_loss", loss, prog_bar=True)
+            self.log(
+                f"{stage}_loss",
+                loss,
+                prog_bar=True,
+                on_epoch=True,
+                on_step=True,
+                sync_dist=True,
+            )
             for index, metric in enumerate(metrics):
                 metric(y, out)
                 metric_name = "mse" if index == 0 else "r2"

@@ -16,7 +16,7 @@ import flwr as fl
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from data_models.subject import Subject
+from data_models.data_builder import DataBuilder
 from data_models.subject_dataset import SubjectDataset
 
 from data_transforms.to_tensor import ToTensor
@@ -30,7 +30,6 @@ from fl_agents.fl_local_agent import FLLocalAgent
 from fl_agents.fl_global_agent import run_global_agent
 
 from utils.configurator import config
-from utils.validator import validate_directory_path
 
 
 def build_dataloader(dataset, start_index, end_index):
@@ -64,40 +63,6 @@ def build_model(subject_dataset):
     )
 
 
-def get_subject_data(subject_id):
-    subject_data_dir = os.path.abspath(
-        os.path.normpath(os.path.join(config["setup"]["datadir"], subject_id))
-    )
-
-    if os.path.isfile(subject_data_dir):
-        return None
-
-    subject = Subject(code=subject_id)
-    subject.setup(data_dir=subject_data_dir)
-    return subject.get_all_data()
-
-
-def get_data(subject_id=None):
-    radar = None
-    bp = None
-    if subject_id is not None:
-        radar, bp = get_subject_data(subject_id)
-    else:
-        data_dir = os.path.abspath(os.path.normpath(config["setup"]["datadir"]))
-        validate_directory_path(data_dir)
-        for subject_dir in os.listdir(data_dir):
-            data = get_subject_data(subject_dir)
-            if data is not None:
-                radar = (
-                    np.concatenate([radar, data[0]], axis=1)
-                    if radar is not None
-                    else data[0]
-                )
-                bp = np.concatenate([bp, data[1]]) if bp is not None else data[1]
-
-    return radar.T, bp
-
-
 def build_loaders(radar, bp):
     radar_mean, radar_std = np.nanmean(radar, axis=0), np.nanstd(radar, axis=0)
     bp_mean, bp_std = np.nanmean(bp, axis=0), np.nanstd(bp, axis=0)
@@ -113,14 +78,14 @@ def build_loaders(radar, bp):
             [
                 ToTensor(),
                 FillNan(default_mean=radar_mean),
-#                Normalize(mean=radar_mean, std=radar_std),
+                Normalize(mean=radar_mean, std=radar_std),
             ]
         ),
         target_transform=Compose(
             [
                 ToTensor(),
                 FillNan(default_mean=bp_mean),
- #               Normalize(mean=bp_mean, std=bp_std),
+                Normalize(mean=bp_mean, std=bp_std),
             ]
         ),
     )
@@ -142,7 +107,8 @@ def build_loaders(radar, bp):
 
 
 def run_lightning():
-    radar, bp = get_data()
+    data_builder = DataBuilder()
+    radar, bp = data_builder.get_data()
     dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
     model = build_model(dataset)
 
@@ -157,13 +123,16 @@ def run_lightning():
 
 
 def run_local_agent(subject_id):
-    radar, bp = get_data(subject_id)
+    data_builder = DataBuilder()
+    radar, bp = data_builder.get_data(subject_id)
     subject_dataset, train_loader, val_loader, test_loader = build_loaders(radar, bp)
     model = build_model(subject_dataset)
 
     agent = FLLocalAgent(model, train_loader, val_loader, test_loader)
     fl.client.start_numpy_client(
-        "{}:{}".format(config["server"]["hostname"], config["server"]["port"]),
+        server_address="{}:{}".format(
+            config["server"]["hostname"], config["server"]["port"]
+        ),
         client=agent,
         grpc_max_message_length=int(config["server"]["grpc"]),
     )

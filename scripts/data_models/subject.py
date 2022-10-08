@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-from numpy import concatenate
 
 import numpy as np
 

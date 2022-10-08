@@ -13,12 +13,12 @@ The data should be placed in a directory at the project level called data. Insid
 
 ## Setup
 
-´´´sh
+```sh
 poetry install
-´´´
+```
 
 ## Run
 
-´´´sh
+```sh
 poetry run python scripts/svm_single_subject.py
-´´´
+```
