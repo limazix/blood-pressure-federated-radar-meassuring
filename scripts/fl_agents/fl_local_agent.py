@@ -17,7 +17,7 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.val_loader = val_loader
         self.test_loader = test_loader
         self.trainer = pl.Trainer(
-            callbacks=[EarlyStopping(monitor="val_mse", mode="min", patience=3)],
+            callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
             max_epochs=int(configurator["setup"]["epochs"]),
             enable_progress_bar=False,
             gradient_clip_val=0.5,
