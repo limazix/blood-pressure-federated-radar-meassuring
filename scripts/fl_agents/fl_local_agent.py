@@ -6,17 +6,19 @@ import torch
 import flwr as fl
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from utils.configurator import config as configurator
 
 
 class FLLocalAgent(fl.client.NumPyClient):
-    def __init__(self, model, train_loader, val_loader, test_loader):
+    def __init__(self, model, train_loader, val_loader, test_loader, aid):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
         self.trainer = pl.Trainer(
+            logger=TensorBoardLogger(save_dir=".", sub_dir=aid),
             callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
             max_epochs=int(configurator["setup"]["epochs"]),
             enable_progress_bar=False,

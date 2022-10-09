@@ -28,7 +28,7 @@ def get_local_agent(subject_id):
     model_builder = ModelBuilder()
     model = model_builder.build(subject_dataset)
 
-    return FLLocalAgent(model, train_loader, val_loader, test_loader)
+    return FLLocalAgent(model, train_loader, val_loader, test_loader, aid=subject_id)
 
 
 def run_simulation() -> None:
@@ -50,5 +50,5 @@ def run_simulation() -> None:
         client_resources={"num_cpus": 4},
         config=fl.server.ServerConfig(num_rounds=3),
         strategy=strategy,
-        ray_init_args={}
+        ray_init_args={},
     )
