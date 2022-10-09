@@ -5,6 +5,7 @@ import click
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from builders.data_builder import DataBuilder
 from builders.data_loader_builder import DataLoaderBuilder
@@ -28,6 +29,7 @@ def run_lightning():
     model = model_builder.build(dataset)
 
     trainer = pl.Trainer(
+        logger=TensorBoardLogger(save_dir=".", sub_dir="centralized"),
         callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
         max_epochs=int(config["setup"]["epochs"]),
         enable_progress_bar=True,
