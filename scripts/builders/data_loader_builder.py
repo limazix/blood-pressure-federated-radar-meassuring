@@ -50,7 +50,7 @@ class DataLoaderBuilder:
                 [
                     ToTensor(),
                     FillNan(default_mean=bp_mean),
-                    Normalize(mean=bp_mean, std=bp_std),
+#                    Normalize(mean=bp_mean, std=bp_std),
                 ]
             ),
         )

@@ -236,6 +236,17 @@ python-versions = "*"
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
+name = "commonmark"
+version = "0.9.1"
+description = "Python parser for the CommonMark Markdown spec"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+test = ["hypothesis (==3.55.3)", "flake8 (==3.7.8)"]
+
+[[package]]
 name = "dask"
 version = "2022.9.2"
 description = "Parallel PyData with Task Scheduling"
@@ -749,6 +760,27 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "lightning-bolts"
+version = "0.5.0"
+description = "PyTorch Lightning Bolts is a community contribution for ML researchers."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+packaging = "*"
+pytorch-lightning = ">=1.4.0"
+torch = ">=1.7.1"
+torchmetrics = ">=0.4.1"
+
+[package.extras]
+test = ["jsonargparse", "ale-py (>=0.7)", "sparseml", "scikit-learn (>=0.23)", "atari-py (==0.2.6)", "mypy (>=0.790)", "pre-commit (>=1.0)", "isort (>=5.6.4)", "twine (>=3.2)", "check-manifest", "flake8", "pytest-cov (>2.10)", "pytest (>=6.0)", "codecov (>=2.1)"]
+models = ["box2d-py (>=2.3.0,<2.4.0)", "atari-py (>=0.2.0,<0.3.0)", "gym[atari] (>=0.17.2,<0.20.0)", "opencv-python-headless", "pillow", "scikit-learn (>=0.23)", "torchvision (>=0.8.2)"]
+loggers = ["scipy", "wandb", "matplotlib"]
+extra = ["scipy", "wandb", "matplotlib", "box2d-py (>=2.3.0,<2.4.0)", "atari-py (>=0.2.0,<0.3.0)", "gym[atari] (>=0.17.2,<0.20.0)", "opencv-python-headless", "pillow", "scikit-learn (>=0.23)", "torchvision (>=0.8.2)"]
+dev = ["jsonargparse", "ale-py (>=0.7)", "sparseml", "atari-py (==0.2.6)", "mypy (>=0.790)", "pre-commit (>=1.0)", "isort (>=5.6.4)", "twine (>=3.2)", "check-manifest", "flake8", "pytest-cov (>2.10)", "pytest (>=6.0)", "codecov (>=2.1)", "scipy", "wandb", "matplotlib", "box2d-py (>=2.3.0,<2.4.0)", "atari-py (>=0.2.0,<0.3.0)", "gym[atari] (>=0.17.2,<0.20.0)", "opencv-python-headless", "pillow", "scikit-learn (>=0.23)", "torchvision (>=0.8.2)"]
+
+[[package]]
 name = "locket"
 version = "1.0.0"
 description = "File-based locks for Python on Linux and Windows"
@@ -1120,7 +1152,7 @@ python-versions = ">=3.6"
 name = "pygments"
 version = "2.13.0"
 description = "Pygments is a syntax highlighting package written in Python."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1326,6 +1358,22 @@ requests = ">=2.0.0"
 
 [package.extras]
 rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
+
+[[package]]
+name = "rich"
+version = "12.6.0"
+description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
+category = "main"
+optional = false
+python-versions = ">=3.6.3,<4.0.0"
+
+[package.dependencies]
+commonmark = ">=0.9.0,<0.10.0"
+pygments = ">=2.6.0,<3.0.0"
+typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.9\""}
+
+[package.extras]
+jupyter = ["ipywidgets (>=7.5.1,<8.0.0)"]
 
 [[package]]
 name = "rsa"
@@ -1701,7 +1749,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "0d0bccb4d7dbbe93510aeb8c35caa3fb45f533555336b6c3bf32d25a615a761d"
+content-hash = "8ee15ad7e3083021713081d19a9d36588bfea7fac2cdceea6d01f23acb6629c0"
 
 [metadata.files]
 absl-py = []
@@ -1731,6 +1779,7 @@ click = [
 cloudpickle = []
 colorama = []
 colorful = []
+commonmark = []
 dask = []
 debugpy = []
 decorator = [
@@ -1777,6 +1826,7 @@ jsonschema = []
 jupyter-client = []
 jupyter-core = []
 lazy-object-proxy = []
+lightning-bolts = []
 locket = []
 markdown = []
 markupsafe = [
@@ -1929,6 +1979,7 @@ pyzmq = []
 ray = []
 requests = []
 requests-oauthlib = []
+rich = []
 rsa = []
 scikit-learn = []
 scipy = [

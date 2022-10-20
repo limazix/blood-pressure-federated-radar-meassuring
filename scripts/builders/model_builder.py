@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from torch.optim import SGD
+from torch.optim import Adam
 from torch import nn
 
 from utils.configurator import config
@@ -26,6 +26,6 @@ class ModelBuilder:
         return LightningModule(
             model=model,
             loss=nn.L1Loss(),
-            optimizer=SGD,
+            optimizer=Adam,
             lr=float(config["setup"]["learn_rate"]),
         )

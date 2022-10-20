@@ -7,7 +7,11 @@ import flwr as fl
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, RichModelSummary, DeviceStatsMonitor
 
+from pl_bolts.callbacks import ModuleDataMonitor
+
+from callbacks.sampler_callback import SamplerCallback
 from utils.configurator import config as configurator
 
 
@@ -17,14 +21,7 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
-        self.trainer = pl.Trainer(
-            logger=TensorBoardLogger(save_dir=".", sub_dir=aid),
-            callbacks=[EarlyStopping(monitor="val_loss", mode="min", patience=3)],
-            max_epochs=int(configurator["setup"]["epochs"]),
-            enable_progress_bar=False,
-            gradient_clip_val=0.5,
-            log_every_n_steps=20,
-        )
+        self.aid = aid
 
     def get_parameters(self, config={}):
         params = []
@@ -39,10 +36,29 @@ class FLLocalAgent(fl.client.NumPyClient):
             _set_parameters(layer, parameters[start:end])
             start = end
 
-    def fit(self, parameters, config={}):
+    def _get_trainer(self, server_round:int):
+        return pl.Trainer(
+            logger=TensorBoardLogger(
+                save_dir=".", sub_dir=f"rnd_{server_round}/{self.aid}", version=configurator["setup"]["version"]
+            ),
+            callbacks=[
+                ModuleDataMonitor(log_every_n_steps=50),
+                DeviceStatsMonitor(),
+                ModelCheckpoint(monitor="val_loss"),
+                RichModelSummary(),
+                LearningRateMonitor(logging_interval="step"),
+                EarlyStopping(monitor="val_loss", mode="min", patience=15),
+            ],
+            max_epochs=int(configurator["setup"]["epochs"]),
+            enable_progress_bar=False,
+            gradient_clip_val=0.5,
+        )
+
+    def fit(self, parameters, config):
         self.set_parameters(parameters)
 
-        self.trainer.fit(
+        trainer = self._get_trainer(config.server_round)
+        trainer.fit(
             self.model,
             train_dataloaders=self.train_loader,
             val_dataloaders=self.val_loader,
@@ -53,12 +69,23 @@ class FLLocalAgent(fl.client.NumPyClient):
     def evaluate(self, parameters, config={}):
         self.set_parameters(parameters)
 
-        results = self.trainer.test(self.model, self.test_loader)
+        trainer = self._get_trainer(config.server_round)
+        results = trainer.test(self.model, self.test_loader)
         loss = results[0]["test_loss_epoch"]
         mse = results[0]["test_mse"]
         r2 = results[0]["test_r2"]
+        explained_variance = results[0]["test_explaimed_variance"]
 
-        return loss, len(self.test_loader.dataset), {"loss": loss, "mse": mse, "r2": r2}
+        return (
+            loss,
+            len(self.test_loader.dataset),
+            {
+                "loss": loss,
+                "mse": mse,
+                "r2": r2,
+                "explained_variance": explained_variance,
+            },
+        )
 
 
 def _get_parameters(model):

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from torch import nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import pytorch_lightning as pl
-from torchmetrics import MeanSquaredError, R2Score
+from torchmetrics import MeanSquaredError, R2Score, ExplainedVariance
 
 
 class LightningModule(pl.LightningModule):
@@ -23,6 +24,8 @@ class LightningModule(pl.LightningModule):
         self.lr = lr
         self.val_mse = MeanSquaredError()
         self.val_r2 = R2Score(num_outputs=self.model.output_size)
+        self.val_explained_variance = ExplainedVariance()
+        self.test_explained_variance = ExplainedVariance()
         self.test_mse = MeanSquaredError()
         self.test_r2 = R2Score(num_outputs=self.model.output_size)
 
@@ -37,35 +40,45 @@ class LightningModule(pl.LightningModule):
         return self.model(X)
 
     def configure_optimizers(self):
-        return self.optimizer(params=list(self.parameters()), lr=self.lr)
+        optimizer = self.optimizer(params=list(self.parameters()), lr=self.lr)
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.2, patience=10)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "val_loss",
+        }
 
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
         out = self(x)
         loss = self.loss(out, y)
-        self.log("train_loss", loss, on_epoch=True, on_step=True, sync_dist=True)
+        self.log("train_loss", loss, on_epoch=True, on_step=False)
         return loss
 
     def validation_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, [self.val_mse, self.val_r2], "val")
+        self._evaluate(
+            test_batch, [self.val_mse, self.val_r2, self.val_explained_variance], "val"
+        )
 
     def test_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, [self.test_mse, self.test_r2], "test")
+        self._evaluate(
+            test_batch,
+            [self.test_mse, self.test_r2, self.test_explained_variance],
+            "test",
+        )
 
     def _evaluate(self, batch, metrics, stage=None):
         x, y = batch
         out = self(x)
         loss = self.loss(out, y)
+        logs = {f"{stage}_loss": loss}
         if stage:
-            self.log(
-                f"{stage}_loss",
-                loss,
-                prog_bar=True,
-                on_epoch=True,
-                on_step=True,
-                sync_dist=True,
-            )
             for index, metric in enumerate(metrics):
                 metric(y, out)
-                metric_name = "mse" if index == 0 else "r2"
-                self.log(f"{stage}_{metric_name}", metric, prog_bar=True)
+                metric_name = "mse"
+                if index == 1:
+                    metric_name = "r2"
+                elif index == 2:
+                    metric_name = "explained_variance"
+                logs[f"{stage}_{metric_name}"] = metric
+            self.log_dict(logs, prog_bar=True, on_epoch=True, on_step=False)
