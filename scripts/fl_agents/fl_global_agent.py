@@ -30,7 +30,7 @@ def get_local_agent(subject_id):
 
     return FLLocalAgent(model, train_loader, val_loader, test_loader, aid=subject_id)
 
-def _get_experiment_config(server_round: int):
+def get_experiment_config(server_round):
     return {"server_round": server_round}
 
 def run_simulation() -> None:
@@ -44,15 +44,13 @@ def run_simulation() -> None:
     strategy = AggregateCustomMetricStrategy(
         fraction_fit=0.2,
         fraction_evaluate=0.1,
-        on_fit_config_fn=_get_experiment_config,
-        on_evaluate_config_fn=_get_experiment_config
     )
 
     fl.simulation.start_simulation(
         client_fn=get_local_agent,
         clients_ids=subjects_ids,
-#        client_resources={"num_cpus": 4},
+        client_resources={"num_cpus": 8},
         config=fl.server.ServerConfig(num_rounds=10),
         strategy=strategy,
-        ray_init_args={},
+        ray_init_args={"include_dashboard": False},
     )

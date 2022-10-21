@@ -6,13 +6,20 @@ import click
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, RichModelSummary, DeviceStatsMonitor
+from pytorch_lightning.callbacks import (
+    LearningRateMonitor,
+    ModelCheckpoint,
+    RichModelSummary,
+    DeviceStatsMonitor,
+)
 
 from pl_bolts.callbacks import ModuleDataMonitor
 
 from builders.data_builder import DataBuilder
 from builders.data_loader_builder import DataLoaderBuilder
 from builders.model_builder import ModelBuilder
+
+from callbacks.sampler_callback import SamplerCallback
 
 from fl_agents.fl_global_agent import run_simulation
 
@@ -39,9 +46,9 @@ def run_lightning():
             ModuleDataMonitor(log_every_n_steps=50),
             DeviceStatsMonitor(),
             ModelCheckpoint(monitor="val_loss"),
-            RichModelSummary(),
             LearningRateMonitor(logging_interval="step"),
             EarlyStopping(monitor="val_loss", mode="min", patience=15),
+            SamplerCallback(sample_data=next(iter(train_loader))),
         ],
         max_epochs=int(config["setup"]["epochs"]),
         enable_progress_bar=True,
