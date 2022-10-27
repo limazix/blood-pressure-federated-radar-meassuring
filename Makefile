@@ -1,21 +1,27 @@
-SHELL:=/bin/bash
+SHELL:=/bin/zsh
 
 VERBOSE=1
 
-install:
-	@poetry install
+CURRENT_DIR=${shell pwd}
+VENV_DIR=${CURRENT_DIR}/.venv
+VENV_BIN_DIR=${VENV_DIR}/bin
+SCRIPTS_DIR=${CURRENT_DIR}/scripts
 
-update:
-	@poetry update
+
+setup:
+	@python3 -m venv ${VENV_DIR}
+	@${VENV_BIN_DIR}/pip install -r ${CURRENT_DIR}/requirements.txt
 
 clean:
-	@poetry cache clean
+	@rm -rf ${VENV_DIR}
+	@find ${SCRIPTS_DIR} -type f -name "*.pyc" -delete
+	@find ${SCRIPTS_DIR} -type d -name "__pycache__" -delete
 
 run-federated:
-	@poetry run python scripts/main.py --is-federated
+	@${VENV_BIN_DIR}/python scripts/main.py --is-federated
 
 run-centralized:
-	@poetry run python scripts/main.py
+	@${VENV_BIN_DIR}/python scripts/main.py
 
 dashboard:
-	@poetry run tensorboard serve --logdir ./lightning_logs
+	@${VENV_BIN_DIR}/tensorboard serve --logdir ./lightning_logs
