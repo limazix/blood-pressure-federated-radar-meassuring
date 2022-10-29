@@ -43,11 +43,11 @@ def run_lightning():
             save_dir=".", sub_dir="centralized", version=config["setup"]["version"]
         ),
         callbacks=[
-            ModuleDataMonitor(log_every_n_steps=50),
+            ModuleDataMonitor(log_every_n_steps=100),
             DeviceStatsMonitor(),
             ModelCheckpoint(monitor="val_loss"),
             LearningRateMonitor(logging_interval="step"),
-            EarlyStopping(monitor="val_loss", mode="min", patience=15),
+            EarlyStopping(monitor="val_loss", mode="min", patience=10),
             SamplerCallback(sample_data=next(iter(train_loader))),
         ],
         max_epochs=int(config["setup"]["epochs"]),

@@ -26,9 +26,12 @@ class FLLocalAgent(fl.client.NumPyClient):
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
+        self.aid = aid
+
+    def set_trainer(self, current_round):
         self.trainer = pl.Trainer(
             logger=TensorBoardLogger(
-                save_dir=".", sub_dir=aid, version=configurator["setup"]["version"]
+                save_dir=".", sub_dir=f"round_{current_round}/{self.aid}", version=configurator["setup"]["version"]
             ),
             callbacks=[
                 ModuleDataMonitor(log_every_n_steps=50),
@@ -36,7 +39,7 @@ class FLLocalAgent(fl.client.NumPyClient):
                 ModelCheckpoint(monitor="val_loss"),
                 LearningRateMonitor(logging_interval="step"),
                 EarlyStopping(monitor="val_loss", mode="min", patience=15),
-                SamplerCallback(sample_data=next(iter(train_loader))),
+                SamplerCallback(sample_data=next(iter(self.train_loader))),
             ],
             max_epochs=int(configurator["setup"]["epochs"]),
             enable_progress_bar=False,
@@ -58,6 +61,8 @@ class FLLocalAgent(fl.client.NumPyClient):
 
     def fit(self, parameters, config):
         self.set_parameters(parameters)
+
+        self.set_trainer(current_round=config.server_round)
 
         self.trainer.fit(
             self.model,

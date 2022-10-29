@@ -40,16 +40,16 @@ def run_simulation() -> None:
         for i in range(int(config["subjects"]["num_subjects"]))
     ]
 
-    # Define strategy
     strategy = AggregateCustomMetricStrategy(
         fraction_fit=0.2,
         fraction_evaluate=0.1,
+        on_fit_config_fn=get_experiment_config,
     )
 
     fl.simulation.start_simulation(
         client_fn=get_local_agent,
         clients_ids=subjects_ids,
-        client_resources={"num_cpus": 8},
+        client_resources={"num_cpus": 4},
         config=fl.server.ServerConfig(num_rounds=10),
         strategy=strategy,
         ray_init_args={"include_dashboard": False},

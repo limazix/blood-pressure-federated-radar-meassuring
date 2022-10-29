@@ -17,26 +17,26 @@ class SamplerCallback(pl.Callback):
     ) -> None:
         if trainer.current_epoch % self.every_n_epochs == 0:
 
+            X, Y = self.sample_data
             with torch.no_grad():
                 pl_module.eval()
-                results = pl_module(self.sample_data)
+                results = pl_module(X)
                 pl_module.train()
 
-            for idx, out in enumerate(results):
-                y = self.sample_data[idx]
-                for pos, y_hat in enumerate(out):
-                    trainer.logger.experiment.add_scalars(
-                        f"epoch_{trainer.current_epoch}",
-                        {"expected": y[pos], "result": y_hat},
-                        pos,
-                    )
+            for idx, y_hat in enumerate(results):
+                trainer.logger.experiment.add_scalars(
+                    f"epoch_{trainer.current_epoch}",
+                    {"expected": Y[idx], "result": y_hat},
+                    idx,
+                )
 
     def on_train_epoch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> None:
         if trainer.current_epoch == 1:
+            X, Y = self.sample_data
             trainer.logger.experiment.add_graph(
-                pl_module, input_to_model=(self.sample_data)
+                pl_module, input_to_model=X
             )
 
         for name, params in pl_module.named_parameters():

@@ -41,7 +41,7 @@ class LightningModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=list(self.parameters()), lr=self.lr)
-        scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.2, patience=10)
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.2, patience=5)
         return {
             "optimizer": optimizer,
             "lr_scheduler": scheduler,
