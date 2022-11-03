@@ -16,7 +16,6 @@ from pytorch_lightning.callbacks import (
 
 from pl_bolts.callbacks import ModuleDataMonitor
 
-from callbacks.sampler_callback import SamplerCallback
 from utils.configurator import config as configurator
 
 
@@ -39,7 +38,6 @@ class FLLocalAgent(fl.client.NumPyClient):
                 ModelCheckpoint(monitor="val_loss"),
                 LearningRateMonitor(logging_interval="step"),
                 EarlyStopping(monitor="val_loss", mode="min", patience=15),
-                SamplerCallback(sample_data=next(iter(self.train_loader))),
             ],
             max_epochs=int(configurator["setup"]["epochs"]),
             enable_progress_bar=False,

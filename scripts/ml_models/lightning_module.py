@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import pytorch_lightning as pl
-from torchmetrics import MeanSquaredError, R2Score, ExplainedVariance
+from torchmetrics import MeanSquaredError, R2Score, SignalNoiseRatio
 
 
 class LightningModule(pl.LightningModule):
@@ -15,19 +15,22 @@ class LightningModule(pl.LightningModule):
         model (nn.Module): Pytorch module instance
     """
 
-    def __init__(self, model: nn.Module, loss, optimizer, lr) -> None:
+    def __init__(self, model: nn.Module, loss, optimizer, lr, example_input_array) -> None:
         super(LightningModule, self).__init__()
+        self.save_hyperparameters(ignore=["model", "loss"])
         self.model = model
         self.layers = model.layers
         self.loss = loss
         self.optimizer = optimizer
         self.lr = lr
-        self.val_mse = MeanSquaredError()
-        self.val_r2 = R2Score(num_outputs=self.model.output_size)
-        self.val_explained_variance = ExplainedVariance()
-        self.test_explained_variance = ExplainedVariance()
+        self.example_input_array = example_input_array
         self.test_mse = MeanSquaredError()
         self.test_r2 = R2Score(num_outputs=self.model.output_size)
+        self.test_snr = SignalNoiseRatio()
+        self.val_mse = MeanSquaredError()
+        self.val_r2 = R2Score(num_outputs=self.model.output_size)
+        self.val_snr = SignalNoiseRatio()
+
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -57,13 +60,13 @@ class LightningModule(pl.LightningModule):
 
     def validation_step(self, test_batch, batch_idx):
         self._evaluate(
-            test_batch, [self.val_mse, self.val_r2, self.val_explained_variance], "val"
+            test_batch, [self.val_mse, self.val_r2, self.val_snr], "val"
         )
 
     def test_step(self, test_batch, batch_idx):
         self._evaluate(
             test_batch,
-            [self.test_mse, self.test_r2, self.test_explained_variance],
+            [self.test_mse, self.test_r2, self.test_snr],
             "test",
         )
 
@@ -74,11 +77,11 @@ class LightningModule(pl.LightningModule):
         logs = {f"{stage}_loss": loss}
         if stage:
             for index, metric in enumerate(metrics):
-                metric(y, out)
+                metric(out, y)
                 metric_name = "mse"
                 if index == 1:
                     metric_name = "r2"
                 elif index == 2:
-                    metric_name = "explained_variance"
+                    metric_name = "snr"
                 logs[f"{stage}_{metric_name}"] = metric
-            self.log_dict(logs, prog_bar=True, on_epoch=True, on_step=False)
+            self.log_dict(logs, prog_bar=True, on_epoch=True, on_step=False if stage == "val" else True)

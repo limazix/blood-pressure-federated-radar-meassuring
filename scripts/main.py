@@ -19,8 +19,6 @@ from builders.data_builder import DataBuilder
 from builders.data_loader_builder import DataLoaderBuilder
 from builders.model_builder import ModelBuilder
 
-from callbacks.sampler_callback import SamplerCallback
-
 from fl_agents.fl_global_agent import run_simulation
 
 from utils.configurator import config
@@ -35,12 +33,16 @@ def run_lightning():
         radar, bp
     )
 
+    example_input_array, _ = next(iter(train_loader))
     model_builder = ModelBuilder()
-    model = model_builder.build(dataset)
+    model = model_builder.build(dataset, example_input_array)
 
     trainer = pl.Trainer(
         logger=TensorBoardLogger(
-            save_dir=".", sub_dir="centralized", version=config["setup"]["version"]
+            save_dir=".",
+            sub_dir="centralized",
+            version=config["setup"]["version"],
+            log_graph=True,
         ),
         callbacks=[
             ModuleDataMonitor(log_every_n_steps=100),
@@ -48,7 +50,6 @@ def run_lightning():
             ModelCheckpoint(monitor="val_loss"),
             LearningRateMonitor(logging_interval="step"),
             EarlyStopping(monitor="val_loss", mode="min", patience=10),
-            SamplerCallback(sample_data=next(iter(train_loader))),
         ],
         max_epochs=int(config["setup"]["epochs"]),
         enable_progress_bar=True,

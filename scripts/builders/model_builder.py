@@ -11,7 +11,7 @@ from ml_models.lightning_module import LightningModule
 
 
 class ModelBuilder:
-    def build(self, subject_dataset):
+    def build(self, subject_dataset, example_input_array):
         input_sample, output_sample = subject_dataset[0]
         input_size = len(input_sample)
         hidden_size = int(input_size * 0.8)
@@ -28,4 +28,5 @@ class ModelBuilder:
             loss=nn.L1Loss(),
             optimizer=Adam,
             lr=float(config["setup"]["learn_rate"]),
+            example_input_array=example_input_array,
         )
