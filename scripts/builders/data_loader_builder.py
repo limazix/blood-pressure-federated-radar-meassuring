@@ -5,6 +5,8 @@ import copy
 
 import numpy as np
 
+from scipy.stats import hmean
+
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 
@@ -13,7 +15,6 @@ from data_models.subject_dataset import SubjectDataset
 from utils.configurator import config
 
 from data_transforms.to_tensor import ToTensor
-from data_transforms.normalize import Normalize
 from data_transforms.fill_nan import FillNan
 
 
@@ -29,8 +30,8 @@ class DataLoaderBuilder:
         )
 
     def build_loaders(self, radar, bp):
-        radar_mean, radar_std = np.nanmean(radar, axis=0), np.nanstd(radar, axis=0)
-        bp_mean, bp_std = np.nanmean(bp, axis=0), np.nanstd(bp, axis=0)
+        radar_mean = hmean(radar, axis=0, nan_policy='omit')
+        bp_mean = hmean(bp, axis=0, nan_policy='omit')
 
         dataset = SubjectDataset(
             radar=radar,
@@ -43,14 +44,12 @@ class DataLoaderBuilder:
                 [
                     ToTensor(),
                     FillNan(default_mean=radar_mean),
-#                    Normalize(mean=radar_mean, std=radar_std),
                 ]
             ),
             target_transform=Compose(
                 [
                     ToTensor(),
                     FillNan(default_mean=bp_mean),
-#                    Normalize(mean=bp_mean, std=bp_std),
                 ]
             ),
         )
