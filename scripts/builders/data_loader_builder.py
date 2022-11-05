@@ -43,7 +43,7 @@ class DataLoaderBuilder:
                 [
                     ToTensor(),
                     FillNan(default_mean=radar_mean),
-                    Normalize(mean=radar_mean, std=radar_std),
+#                    Normalize(mean=radar_mean, std=radar_std),
                 ]
             ),
             target_transform=Compose(

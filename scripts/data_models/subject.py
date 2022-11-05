@@ -7,6 +7,7 @@ import numpy as np
 
 from utils.validator import validate_directory_path
 from .scenario import Scenario
+from .scenario_type import ScenarioType
 
 
 class Subject:
@@ -21,7 +22,7 @@ class Subject:
         self.code = code
         self.scenarios = []
 
-    def setup(self, data_dir: str):
+    def setup(self, data_dir: str, scenario_types: list = None) -> None:
         """Method used to load all scenario data from files
 
         Parameters:
@@ -31,9 +32,11 @@ class Subject:
 
         for scenario_filename in os.listdir(data_dir):
             scenario_filepath = os.path.join(data_dir, scenario_filename)
-            scenario = Scenario()
-            scenario.setup(data_file=scenario_filepath)
-            self.scenarios.append(scenario)
+            scenario = Scenario(data_file=scenario_filepath)
+            scenario.setup()
+            if scenario_types is None or scenario.scenario_type in scenario_types:
+                scenario.load_data()
+                self.scenarios.append(scenario)
 
     def get_all_data(self):
         """Method used load join all scenarios data

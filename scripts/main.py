@@ -15,6 +15,8 @@ from pytorch_lightning.callbacks import (
 
 from pl_bolts.callbacks import ModuleDataMonitor
 
+from data_models.scenario_type import ScenarioType
+
 from builders.data_builder import DataBuilder
 from builders.data_loader_builder import DataLoaderBuilder
 from builders.model_builder import ModelBuilder
@@ -26,7 +28,7 @@ from utils.configurator import config
 
 def run_lightning():
     data_builder = DataBuilder()
-    radar, bp = data_builder.get_data()
+    radar, bp = data_builder.get_data(scenario_types=[ScenarioType.RESTING])
 
     data_loader_builder = DataLoaderBuilder()
     dataset, train_loader, val_loader, test_loader = data_loader_builder.build_loaders(

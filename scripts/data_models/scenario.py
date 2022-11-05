@@ -17,13 +17,16 @@ class Scenario:
 
     Parameters:
         scenario_type (ScenarioType): It defines the type of the current scenario
-        data (DataFrame): It contains the scenario data
+        radar (DataFrame): It contains the scenario radar data
+        bp (DataFrame): It contains the scenario bp data
+        data_file (str): The absolute path to a given scenario
     """
 
-    def __init__(self) -> None:
+    def __init__(self, data_file) -> None:
         self.scenario_type = None
         self.radar = None
         self.bp = None
+        self.data_file = data_file
 
     def set_scenario_type(self, filename):
         """Method used to define the scenario type from a given file name
@@ -35,17 +38,17 @@ class Scenario:
         scenario = name.split("_")[2]
         self.scenario_type = ScenarioType(scenario)
 
-    def setup(self, data_file: str):
-        """Method used to load a scenario data from a file
-
-        Parameters:
-            data_file (str): The absolute path to a given scenario
-        """
-        validate_file_path(data_file)
-        self.set_scenario_type(os.path.basename(data_file))
+    def load_data(self):
         loader = DataLoader()
-        data = loader.load_file(data_file)
+        data = loader.load_file(self.data_file)
         data = loader.clean_data_columns(data)
 
         self.radar = np.array([data["radar_i"], data["radar_q"]])
         self.bp = np.array(data["tfm_bp"])
+
+
+    def setup(self):
+        """Method used to load a scenario data from a file
+        """
+        validate_file_path(self.data_file)
+        self.set_scenario_type(os.path.basename(self.data_file))
