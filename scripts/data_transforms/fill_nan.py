@@ -1,13 +1,18 @@
-import numpy as np
-from scipy.stats import hmean
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+import numpy as np
+import pandas as pd
 
 class FillNan(object):
 
-    def __init__(self, default_mean: np.float32) -> None:
-        self.default_mean = default_mean
+    def interpolate(self, data):
+        data = pd.Series(data)
+        data.interpolate(method='polynomial', order=4, inplece=True)
+        return data.to_numpy()
 
-    def __call__(self, data):
-        mean = hmean(data, axis=0, nan_policy='omit')
-        mean = np.nan_to_num(mean, nan=self.default_mean)
-        return np.nan_to_num(data, nan=mean)
+    def __call__(self, data: np.array):
+        for idx, line in enumerate(data):
+            data[idx] = self.interpolate(line)
+        return data
+        

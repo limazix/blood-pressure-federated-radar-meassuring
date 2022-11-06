@@ -3,10 +3,6 @@
 
 import copy
 
-import numpy as np
-
-from scipy.stats import hmean
-
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 
@@ -15,6 +11,7 @@ from data_models.subject_dataset import SubjectDataset
 from utils.configurator import config
 
 from data_transforms.to_tensor import ToTensor
+from data_transforms.butter_transform import ButterTransform
 from data_transforms.fill_nan import FillNan
 
 
@@ -30,9 +27,6 @@ class DataLoaderBuilder:
         )
 
     def build_loaders(self, radar, bp):
-        radar_mean = hmean(radar, axis=0, nan_policy='omit')
-        bp_mean = hmean(bp, axis=0, nan_policy='omit')
-
         dataset = SubjectDataset(
             radar=radar,
             radar_sr=int(config["dataset"]["radar_sr"]),
@@ -42,14 +36,15 @@ class DataLoaderBuilder:
             overlap=float(config["dataset"]["overlap"]),
             transform=Compose(
                 [
+                    FillNan(),
+                    ButterTransform(),
                     ToTensor(),
-                    FillNan(default_mean=radar_mean),
                 ]
             ),
             target_transform=Compose(
                 [
+                    FillNan(),
                     ToTensor(),
-                    FillNan(default_mean=bp_mean),
                 ]
             ),
         )

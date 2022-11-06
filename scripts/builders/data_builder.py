@@ -9,7 +9,7 @@ from utils.configurator import config
 from utils.validator import validate_directory_path
 
 from data_models.subject import Subject
-from data_models.scenario_type import ScenarioType
+
 
 class DataBuilder:
     def get_subject_data(self, subject_id, scenario_types: list = None):
