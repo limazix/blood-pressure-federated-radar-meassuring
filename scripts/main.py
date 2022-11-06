@@ -37,6 +37,7 @@ def run_lightning():
     model = model_builder.build(dataset, example_input_array)
 
     trainer = pl.Trainer(
+        profiler="advanced",
         logger=TensorBoardLogger(
             save_dir=".",
             sub_dir="centralized",

@@ -3,6 +3,8 @@
 
 from torch import nn
 
+from .select_item_model import SelectItemModel
+
 
 class DecoderModel(nn.Module):
     """Class used to represent a simple RNN implementation in Pytorch for Radar
@@ -25,22 +27,30 @@ class DecoderModel(nn.Module):
         self.setup_layers(hidden_size, latent_dim, num_layers, output_size)
 
     def setup_layers(self, hidden_size, latent_dim, num_layers, output_size):
-        self.layers = nn.ModuleList([])
+        self.layers = nn.Sequential()
         self.layers.append(
             nn.GRU(
-                latent_dim, latent_dim, num_layers, batch_first=True, dropout=0, bidirectional=False
+                latent_dim,
+                latent_dim,
+                num_layers,
+                batch_first=True,
+                dropout=0,
+                bidirectional=False,
             )
         )
+        self.layers.append(SelectItemModel(0))
         self.layers.append(
             nn.GRU(
-                latent_dim, hidden_size, num_layers, batch_first=True, dropout=0, bidirectional=True
+                latent_dim,
+                hidden_size,
+                num_layers,
+                batch_first=True,
+                dropout=0,
+                bidirectional=True,
             )
         )
+        self.layers.append(SelectItemModel(0))
         self.layers.append(nn.Linear(hidden_size * 2, output_size))
 
     def forward(self, X):
-
-        output, _ = self.layers[0](X)
-        output, _ = self.layers[1](output)
-
-        return self.layers[2](output)
+        return self.layers(X)

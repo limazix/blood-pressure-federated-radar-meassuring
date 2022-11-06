@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from unicodedata import bidirectional
-import torch
 from torch import nn
-from torch.autograd import Variable
+
+from .select_item_model import SelectItemModel
 
 
 class EncoderModel(nn.Module):
@@ -25,7 +24,7 @@ class EncoderModel(nn.Module):
         self.setup_layers(input_size, hidden_size, num_layers, latent_dim)
 
     def setup_layers(self, input_size, hidden_size, num_layers, latent_dim):
-        self.layers = nn.ModuleList([])
+        self.layers = nn.Sequential()
         self.layers.append(nn.Conv1d(in_channels=2, out_channels=1, kernel_size=100))
         self.layers.append(
             nn.GRU(
@@ -37,6 +36,7 @@ class EncoderModel(nn.Module):
                 bidirectional=True,
             )
         )
+        self.layers.append(SelectItemModel(0))
         self.layers.append(
             nn.GRU(
                 hidden_size * 2,
@@ -51,8 +51,6 @@ class EncoderModel(nn.Module):
     def forward(self, X):
         X = X.view(X.size(0), X.size(2), X.size(1))
 
-        output = self.layers[0](X.float())
-        output, _ = self.layers[1](output)
-        output, _ = self.layers[2](output)
+        output, _ = self.layers(X.float())
 
         return output[:, -1, :]

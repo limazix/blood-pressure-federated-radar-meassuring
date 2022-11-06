@@ -31,7 +31,7 @@ class AutoencoderModel(nn.Module):
     def setup_layers(
         self, input_size, hidden_size, latent_dim, num_layers, output_size
     ):
-        self.layers = nn.ModuleList([])
+        self.layers = nn.Sequential()
         self.layers.append(
             EncoderModel(input_size, hidden_size, num_layers, latent_dim)
         )
@@ -40,6 +40,4 @@ class AutoencoderModel(nn.Module):
         )
 
     def forward(self, X):
-        output = self.layers[0](X)
-        output = self.layers[1](output)
-        return output
+        return self.layers(X)
