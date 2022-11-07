@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from torch import nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import pytorch_lightning as pl
-from torchmetrics import MeanSquaredError, R2Score, SignalDistortionRatio
+
+from torchmetrics.regression.log_mse import MeanSquaredLogError
+from torchmetrics.regression.r2 import R2Score
+from torchmetrics.audio.sdr import SignalDistortionRatio
+
+from ml_models.autoencoder_model import AutoencoderModel
 
 
 class LightningModule(pl.LightningModule):
@@ -15,7 +19,9 @@ class LightningModule(pl.LightningModule):
         model (nn.Module): Pytorch module instance
     """
 
-    def __init__(self, model: nn.Module, loss, optimizer, lr, example_input_array) -> None:
+    def __init__(
+        self, model: AutoencoderModel, loss, optimizer, lr, example_input_array
+    ) -> None:
         super(LightningModule, self).__init__()
         self.save_hyperparameters(ignore=["model", "loss"])
         self.model = model
@@ -24,13 +30,12 @@ class LightningModule(pl.LightningModule):
         self.optimizer = optimizer
         self.lr = lr
         self.example_input_array = example_input_array
-        self.test_mse = MeanSquaredError()
+        self.test_log_mse = MeanSquaredLogError()
         self.test_r2 = R2Score(num_outputs=self.model.output_size)
         self.test_sdr = SignalDistortionRatio()
-        self.val_mse = MeanSquaredError()
+        self.val_log_mse = MeanSquaredLogError()
         self.val_r2 = R2Score(num_outputs=self.model.output_size)
         self.val_sdr = SignalDistortionRatio()
-
 
     def forward(self, X):
         """Method used to convert the in-phase (I) and quadrature (Q) radar signals to the correspondent blood pressure
@@ -59,14 +64,12 @@ class LightningModule(pl.LightningModule):
         return loss
 
     def validation_step(self, test_batch, batch_idx):
-        self._evaluate(
-            test_batch, [self.val_mse, self.val_r2, self.val_sdr], "val"
-        )
+        self._evaluate(test_batch, [self.val_log_mse, self.val_r2, self.val_sdr], "val")
 
     def test_step(self, test_batch, batch_idx):
         self._evaluate(
             test_batch,
-            [self.test_mse, self.test_r2, self.test_sdr],
+            [self.test_log_mse, self.test_r2, self.test_sdr],
             "test",
         )
 
@@ -78,10 +81,15 @@ class LightningModule(pl.LightningModule):
         if stage:
             for index, metric in enumerate(metrics):
                 metric(out, y)
-                metric_name = "mse"
+                metric_name = "log_mse"
                 if index == 1:
                     metric_name = "r2"
                 elif index == 2:
                     metric_name = "sdr"
                 logs[f"{stage}_{metric_name}"] = metric
-            self.log_dict(logs, prog_bar=True, on_epoch=True, on_step=False if stage == "val" else True)
+            self.log_dict(
+                logs,
+                prog_bar=True,
+                on_epoch=True,
+                on_step=False if stage == "val" else True,
+            )
