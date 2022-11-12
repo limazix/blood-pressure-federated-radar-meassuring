@@ -3,12 +3,15 @@
 
 import copy
 
+import numpy as np
+
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 
 from data_models.subject_dataset import SubjectDataset
 
 from utils.configurator import config
+from utils.spline import Spline
 
 from data_transforms.to_tensor import ToTensor
 from data_transforms.butter_transform import ButterTransform
@@ -26,7 +29,21 @@ class DataLoaderBuilder:
             batch_size=int(config["dataloader"]["batch_size"]),
         )
 
+    def build_global_splines(self, radar, bp):
+        bp_spline = Spline(bp)
+        bp_spline.build()
+
+        radar_spline_0 = Spline(radar[0])
+        radar_spline_0.build()
+
+        radar_spline_1 = Spline(radar[1])
+        radar_spline_1.build()
+
+        return np.array([radar_spline_0, radar_spline_1]), np.array([bp_spline])
+
     def build_loaders(self, radar, bp):
+        radar_spline, bp_spline = self.build_global_splines(radar, bp)
+
         dataset = SubjectDataset(
             radar=radar,
             radar_sr=int(config["dataset"]["radar_sr"]),
@@ -36,14 +53,14 @@ class DataLoaderBuilder:
             overlap=float(config["dataset"]["overlap"]),
             transform=Compose(
                 [
-                    FillNan(),
+                    FillNan(radar_spline),
                     ButterTransform(),
                     ToTensor(),
                 ]
             ),
             target_transform=Compose(
                 [
-                    FillNan(),
+                    FillNan(bp_spline),
                     ToTensor(),
                 ]
             ),
