@@ -6,6 +6,7 @@ import click
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.profilers import AdvancedProfiler
 from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
@@ -37,7 +38,7 @@ def run_lightning():
     model = model_builder.build(dataset, example_input_array)
 
     trainer = pl.Trainer(
-#        profiler="advanced",
+        profiler=AdvancedProfiler(filename='profile.txt'),
         logger=TensorBoardLogger(
             save_dir=".",
             sub_dir="centralized",
