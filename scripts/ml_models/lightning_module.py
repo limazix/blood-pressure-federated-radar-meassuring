@@ -64,10 +64,12 @@ class LightningModule(pl.LightningModule):
         return loss
 
     def validation_step(self, test_batch, batch_idx):
-        self._evaluate(test_batch, [self.val_log_mse, self.val_r2, self.val_sdr], "val")
+        return self._evaluate(
+            test_batch, [self.val_log_mse, self.val_r2, self.val_sdr], "val"
+        )
 
     def test_step(self, test_batch, batch_idx):
-        self._evaluate(
+        return self._evaluate(
             test_batch,
             [self.test_log_mse, self.test_r2, self.test_sdr],
             "test",
@@ -93,3 +95,18 @@ class LightningModule(pl.LightningModule):
                 on_epoch=True,
                 on_step=False if stage == "val" else True,
             )
+        return {"predicted": out, "expected": y}
+
+    def validation_epoch_end(self, outputs) -> None:
+        if self.current_epoch % 10 == 0:
+            last_step = outputs[-1]
+            expected = last_step["expected"][-1]
+            predicted = last_step["predicted"][-1]
+
+            tensorboard = self.logger.experiment
+
+            for idx, y in enumerate(predicted):
+                tensorboard.add_scalars(f"val_{self.current_epoch}", {
+                    "predicted": y,
+                    "expected": expected[idx]
+                }, global_step=idx)
